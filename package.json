@@ -1,0 +1,25 @@
+{
+  "name": "projeto-toner",
+  "version": "1.0.0",
+  "description": "Sistema de toner da Barsotti Soluções",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Matheus1199/projeto-toner.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Matheus1199/projeto-toner/issues"
+  },
+  "homepage": "https://github.com/Matheus1199/projeto-toner#readme",
+  "dependencies": {
+    "express": "^5.1.0",
+    "mssql": "^12.1.0"
+  }
+}

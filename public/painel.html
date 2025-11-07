@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Dashboard - Sistema de Toner</title>
+</head>
+<body>
+<h2>Bem-vindo ao Dashboard</h2>
+<button id="logout">Sair</button>
+
+<script>
+    async function verificarToken() {
+        const token = localStorage.getItem('token');
+        if (!token) {
+            alert('Você precisa estar logado!');
+            window.location.href = '/';
+            return;
+        }
+
+        const res = await fetch('/verificar-token', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ token })
+        });
+
+        const data = await res.json();
+        if (!data.valido) {
+            alert('Sessão expirada. Faça login novamente.');
+            localStorage.removeItem('token');
+            window.location.href = '/';
+        }
+    }
+
+    verificarToken();
+
+    document.getElementById('logout').addEventListener('click', () => {
+        localStorage.removeItem('token');
+        window.location.href = '/';
+    });
+</script>
+</body>
+</html>

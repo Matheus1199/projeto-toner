@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Login - Sistema de Toner</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="container">
+    <img src="./img/logo_barsotti.png" alt="Logo Barsotti Soluções" class="logo">
+    <form id="loginForm">
+        <input type="text" id="usuario" placeholder="Usuário" required>
+        <input type="password" id="senha" placeholder="Senha" required>
+        <button type="submit">Entrar</button>
+    </form>
+</div>
+
+<script>
+    const form = document.getElementById('loginForm');
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const usuario = document.getElementById('usuario').value;
+        const senha = document.getElementById('senha').value;
+
+        const res = await fetch('/login', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ usuario, senha })
+        });
+
+        const data = await res.json();
+        if (data.success) {
+            localStorage.setItem('token', data.token);
+            window.location.href = '/painel.html';
+        } else {
+            alert('Usuário ou senha inválidos!');
+        }
+    });
+</script>
+</body>
+</html>
