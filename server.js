@@ -50,6 +50,41 @@ app.post('/verificar-token', async (req, res) => {
         res.status(500).json({ valido: false });
     }
 });
+// 🔹 Rota para cadastrar toner
+app.post('/api/toners', async (req, res) => {
+    const { modelo, marca, cor, tipo, valor } = req.body;
+
+    try {
+        const pool = await sql.connect(dbConfig);
+        await pool.request()
+            .input('modelo', sql.VarChar, modelo)
+            .input('marca', sql.VarChar, marca)
+            .input('cor', sql.VarChar, cor)
+            .input('tipo', sql.VarChar, tipo)
+            .input('valor', sql.Decimal(10, 2), valor)
+            .query(`
+        INSERT INTO Tbl_Toner (Modelo, Marca, Cor, Tipo )
+        VALUES (@modelo, @marca, @cor, @tipo )
+      `);
+
+        res.status(200).json({ message: 'Toner cadastrado com sucesso!' });
+    } catch (error) {
+        console.error('Erro ao cadastrar toner:', error);
+        res.status(500).json({ error: 'Erro ao cadastrar toner' });
+    }
+});
+
+// 🔹 Rota para listar todos os toners
+app.get('/api/toners', async (req, res) => {
+    try {
+        const pool = await sql.connect(dbConfig);
+        const result = await pool.request().query('SELECT * FROM Tbl_Toner');
+        res.status(200).json(result.recordset);
+    } catch (error) {
+        console.error('Erro ao listar toners:', error);
+        res.status(500).json({ error: 'Erro ao listar toners' });
+    }
+});
 
 const PORT = 3000;
 app.listen(PORT, () => console.log(`Servidor rodando em http://localhost:${PORT}`));

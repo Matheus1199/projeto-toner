@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>TonerStock - Gestão de Toners</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 flex">
+
+<!-- Sidebar -->
+<aside class="w-64 bg-white shadow-md h-screen p-4">
+    <h1 class="text-xl font-bold mb-6 text-blue-600">TonerStock</h1>
+    <nav>
+        <ul class="space-y-2">
+            <li><a href="painel.html" class="block py-2 px-3 rounded hover:bg-blue-50">📊 Dashboard</a></li>
+            <li><a href="toners.html" class="block py-2 px-3 rounded bg-blue-100 text-blue-600 font-medium">🧾 Toners</a></li>
+            <li><a href="clientes.html" class="block py-2 px-3 rounded hover:bg-blue-50">👥 Clientes</a></li>
+            <li><a href="fornecedores.html" class="block py-2 px-3 rounded hover:bg-blue-50">🏢 Fornecedores</a></li>
+            <li><a href="vendas.html" class="block py-2 px-3 rounded hover:bg-blue-50">💰 Vendas</a></li>
+            <li><a href="compras.html" class="block py-2 px-3 rounded hover:bg-blue-50">🧾 Compras</a></li>
+        </ul>
+    </nav>
+</aside>
+
+<!-- Conteúdo principal -->
+<main class="flex-1 p-8">
+    <div class="flex justify-between items-center mb-6">
+        <div>
+            <h2 class="text-2xl font-bold text-gray-700">Gestão de Toners</h2>
+            <p class="text-gray-500 text-sm">Cadastre e gerencie seus produtos em estoque</p>
+        </div>
+        <button id="btnNovoToner" class="bg-blue-600 text-white px-4 py-2 rounded-lg shadow hover:bg-blue-700 transition">
+            + Novo Toner
+        </button>
+    </div>
+
+    <!-- Campo de busca -->
+    <div class="mb-6">
+        <input
+                type="text"
+                placeholder="Buscar por modelo, marca ou cor..."
+                class="w-full p-3 border rounded-lg focus:ring focus:ring-blue-200"
+        />
+    </div>
+
+    <!-- Tabela de Toners -->
+    <div class="bg-white rounded-lg shadow p-4">
+        <table class="min-w-full border-collapse">
+            <thead>
+            <tr class="bg-blue-50 text-left text-gray-600 text-sm uppercase">
+                <th class="p-3 border-b">Marca</th>
+                <th class="p-3 border-b">Modelo</th>
+                <th class="p-3 border-b">Cor</th>
+                <th class="p-3 border-b">Tipo</th>
+            </tr>
+            </thead>
+            <tbody id="tabelaToners">
+            <tr>
+                <td colspan="5" class="text-center text-gray-400 py-6">Nenhum toner cadastrado</td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+</main>
+
+<!-- Modal de Cadastro -->
+<div id="modalCadastro" class="hidden fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+    <div class="bg-white rounded-lg shadow-lg w-full max-w-lg p-6">
+        <h3 class="text-xl font-semibold text-gray-700 mb-4">Cadastrar Novo Toner</h3>
+
+        <form id="formToner" class="space-y-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-600 mb-1">Modelo</label>
+                <input type="text" id="modelo" class="w-full border rounded p-2 focus:ring focus:ring-blue-200" required />
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-600 mb-1">Marca</label>
+                <input type="text" id="marca" class="w-full border rounded p-2 focus:ring focus:ring-blue-200" required />
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-600 mb-1">Cor</label>
+                <select id="cor" class="w-full border rounded p-2 focus:ring focus:ring-blue-200" required>
+                    <option value="">Selecione</option>
+                    <option value="Preto">Preto</option>
+                    <option value="Ciano">Ciano</option>
+                    <option value="Magenta">Magenta</option>
+                    <option value="Amarelo">Amarelo</option>
+                </select>
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-600 mb-1">Tipo</label>
+                <input type="text" id="tipo" class="w-full border rounded p-2 focus:ring focus:ring-blue-200" required />
+            </div>
+
+            <div class="flex justify-end space-x-3 mt-4">
+                <button type="button" id="cancelar" class="px-4 py-2 rounded bg-gray-200 hover:bg-gray-300">Cancelar</button>
+                <button type="submit" class="px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700">Salvar</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    const modal = document.getElementById("modalCadastro");
+    const btnNovo = document.getElementById("btnNovoToner");
+    const cancelar = document.getElementById("cancelar");
+    const form = document.getElementById("formToner");
+    const tabela = document.getElementById("tabelaToners");
+
+    // Exibe o modal
+    btnNovo.addEventListener("click", () => modal.classList.remove("hidden"));
+    cancelar.addEventListener("click", () => modal.classList.add("hidden"));
+
+    // Função para carregar os toners do banco
+    async function carregarToners() {
+        const res = await fetch('/api/toners');
+        const toners = await res.json();
+
+        tabela.innerHTML = '';
+        if (toners.length === 0) {
+            tabela.innerHTML = '<tr><td colspan="5" class="text-center text-gray-400 py-6">Nenhum toner cadastrado</td></tr>';
+            return;
+        }
+
+        toners.forEach(t => {
+            const linha = document.createElement('tr');
+            linha.innerHTML = `
+        <td class="p-3 border-b">${t.Marca}</td>
+        <td class="p-3 border-b">${t.Modelo}</td>
+        <td class="p-3 border-b">${t.Cor}</td>
+        <td class="p-3 border-b">${t.Tipo}</td>
+      `;
+            tabela.appendChild(linha);
+        });
+    }
+
+    // Ao enviar o formulário
+    form.addEventListener("submit", async (e) => {
+        e.preventDefault();
+
+        const modelo = document.getElementById("modelo").value;
+        const marca = document.getElementById("marca").value;
+        const cor = document.getElementById("cor").value;
+        const tipo = document.getElementById("tipo").value;
+
+        const res = await fetch('/api/toners', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ modelo, marca, cor, tipo })
+        });
+
+        if (res.ok) {
+            alert('Toner cadastrado com sucesso!');
+            modal.classList.add('hidden');
+            form.reset();
+            carregarToners();
+        } else {
+            alert('Erro ao cadastrar toner.');
+        }
+    });
+
+    // Carrega os toners ao abrir a página
+    carregarToners();
+</script>
+</body>
+</html>
