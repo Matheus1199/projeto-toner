@@ -2,83 +2,64 @@ require('dotenv').config();
 const express = require('express');
 const sql = require('mssql');
 const path = require('path');
-const config = require('./db');
+const config = require('./db'); // ✅ configuração correta
 
 const app = express();
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// LOGIN
+// ✅ LOGIN
 app.post('/login', async (req, res) => {
     const { usuario, senha } = req.body;
 
     try {
         await sql.connect(config);
         const result = await sql.query`
-            SELECT token FROM Tbl_SupUsuarios
-            WHERE usuario = ${usuario} AND senha = ${senha}
+            SELECT * FROM Tbl_SupUsuarios WHERE usuario = ${usuario} AND senha = ${senha}
         `;
 
         if (result.recordset.length > 0) {
-            const token = result.recordset[0].token;
-            res.json({ success: true, token });
+            res.json({ success: true });
         } else {
-            res.json({ success: false, message: 'Usuário ou senha inválidos' });
+            res.status(401).json({ success: false, message: 'Credenciais inválidas.' });
         }
-    } catch (err) {
-        console.error('Erro ao conectar no banco:', err);
-        res.status(500).json({ success: false, error: 'Erro no servidor' });
-    }
-});
-
-// VERIFICAR TOKEN (para proteger páginas)
-app.post('/verificar-token', async (req, res) => {
-    const { token } = req.body;
-
-    try {
-        await sql.connect(config);
-        const result = await sql.query`
-      SELECT * FROM Tbl_SupUsuarios WHERE Token = ${token}
-    `;
-        if (result.recordset.length > 0) {
-            res.json({ valido: true });
-        } else {
-            res.json({ valido: false });
-        }
-    } catch (err) {
-        console.error('Erro ao validar token:', err);
-        res.status(500).json({ valido: false });
-    }
-});
-// 🔹 Rota para cadastrar toner
-app.post('/api/toners', async (req, res) => {
-    const { modelo, marca, cor, tipo, valor } = req.body;
-
-    try {
-        const pool = await sql.connect(dbConfig);
-        await pool.request()
-            .input('modelo', sql.VarChar, modelo)
-            .input('marca', sql.VarChar, marca)
-            .input('cor', sql.VarChar, cor)
-            .input('tipo', sql.VarChar, tipo)
-            .input('valor', sql.Decimal(10, 2), valor)
-            .query(`
-        INSERT INTO Tbl_Toner (Modelo, Marca, Cor, Tipo )
-        VALUES (@modelo, @marca, @cor, @tipo )
-      `);
-
-        res.status(200).json({ message: 'Toner cadastrado com sucesso!' });
     } catch (error) {
-        console.error('Erro ao cadastrar toner:', error);
-        res.status(500).json({ error: 'Erro ao cadastrar toner' });
+        console.error('Erro no login:', error);
+        res.status(500).json({ error: 'Erro interno no servidor.' });
     }
 });
 
-// 🔹 Rota para listar todos os toners
+
+
+// ✅ CADASTRAR TONER (POST)
+app.post('/api/toners', async (req, res) => {
+    const { modelo, marca, tipo } = req.body;
+
+    try {
+        const pool = await sql.connect(config);
+        await pool.request()
+            .input("modelo", sql.VarChar(100), modelo)
+            .input("tipo", sql.VarChar(100), tipo)
+            .input("marca", sql.VarChar(50), marca)
+            .query(`
+                INSERT INTO Tbl_Toner (modelo, marca, tipo)
+                VALUES (@modelo, @marca, @tipo)
+            `);
+
+        res.status(201).json({ message: "Toner cadastrado com sucesso!" });
+    } catch (error) {
+        console.error("Erro ao cadastrar toner:", error);
+        res.status(500).json({ error: "Erro ao cadastrar toner" });
+    }
+});
+
+
+
+// ✅ LISTAR TODOS OS TONERS (GET)
 app.get('/api/toners', async (req, res) => {
     try {
-        const pool = await sql.connect(dbConfig);
-        const result = await pool.request().query('SELECT * FROM Tbl_Toner');
+        const pool = await sql.connect(config); // ✅ corrigido
+        const result = await pool.request().query('SELECT Cod_Produto, Tipo, Marca, Modelo FROM Tbl_Toner');
         res.status(200).json(result.recordset);
     } catch (error) {
         console.error('Erro ao listar toners:', error);
@@ -86,5 +67,65 @@ app.get('/api/toners', async (req, res) => {
     }
 });
 
+
+
+// ✅ ATUALIZAR TONER (PUT)
+app.put('/api/toners/:id', async (req, res) => {
+    const { Cod_Produto } = req.params;
+    const { modelo, marca, tipo } = req.body;
+
+    try {
+        const pool = await sql.connect(config);
+
+        const result = await pool.request()
+            .input("Cod_Produto", sql.Int, Cod_Produto)
+            .input("modelo", sql.VarChar(100), modelo)
+            .input("marca", sql.VarChar(50), marca)
+            .input("tipo", sql.VarChar(100), tipo)
+            .query(`
+                UPDATE Tbl_Toner 
+                SET Modelo = @modelo,
+                    tipo = @tipo
+                WHERE Cod_Produto = @Cod_Produto
+            `);
+
+        if (result.rowsAffected[0] === 0) {
+            return res.status(404).json({ error: "Toner não encontrado." });
+        }
+
+        res.json({ message: "Toner atualizado com sucesso!" });
+
+    } catch (error) {
+        console.error("Erro ao atualizar toner:", error);
+        res.status(500).json({ error: "Erro ao atualizar toner" });
+    }
+});
+
+
+
+// ✅ EXCLUIR TONER (DELETE)
+app.delete('/api/toners/:id', async (req, res) => {
+    const { Cod_Produto } = req.params;
+
+    try {
+        const pool = await sql.connect(config);
+
+        const result = await pool.request()
+            .input("Cod_Produto", sql.Int, Cod_Produto)
+            .query(`DELETE FROM Tbl_Toner WHERE Cod_Produto = @Cod_Produto`);
+
+        if (result.rowsAffected[0] === 0) {
+            return res.status(404).json({ error: "Toner não encontrado." });
+        }
+
+        res.json({ message: "Toner excluído com sucesso!" });
+
+    } catch (error) {
+        console.error("Erro ao excluir toner:", error);
+        res.status(500).json({ error: "Erro ao excluir toner" });
+    }
+});
+
+// ✅ SERVIDOR
 const PORT = 3000;
-app.listen(PORT, () => console.log(`Servidor rodando em http://localhost:${PORT}`));
+app.listen(PORT, () => console.log(`✅ Servidor rodando em http://localhost:${PORT}`));
