@@ -1,15 +1,27 @@
 const sql = require('mssql');
 
-// Configuração do seu banco SQL Server
+const sql = require('mssql');
+
 const config = {
-    user: 'sa',
-    password: 'sql@964012',
-    server: '192.168.10.250', // exemplo: '192.168.1.10'
-    database: 'barsottisolucoes_teste',
+    user: process.env.DB_USER,
+    password: process.env.DB_PASS,
+    server: process.env.DB_HOST,
+    database: process.env.DB_NAME,
+    port: parseInt(process.env.DB_PORT, 10),
     options: {
-        encrypt: false, // true se usar Azure
+        encrypt: false, // ou true se usar SSL
         trustServerCertificate: true
     }
 };
 
-module.exports = config;
+async function connectDB() {
+    try {
+        await sql.connect(config);
+        console.log('Conectado ao banco de dados com sucesso!');
+    } catch (err) {
+        console.error('Erro ao conectar ao banco de dados:', err);
+    }
+}
+
+connectDB();
+

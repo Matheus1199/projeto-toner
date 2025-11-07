@@ -19,6 +19,7 @@
   },
   "homepage": "https://github.com/Matheus1199/projeto-toner#readme",
   "dependencies": {
+    "dotenv": "^17.2.3",
     "express": "^5.1.0",
     "mssql": "^12.1.0"
   }
