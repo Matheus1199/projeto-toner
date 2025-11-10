@@ -3,7 +3,13 @@ document.addEventListener("DOMContentLoaded", () => {
     const modal = document.getElementById("modal-bg");
     const btnNovoToner = document.getElementById("btnNovoToner");
     const salvarBtn = document.getElementById("salvarToner");
-    const inputPesquisa = document.getElementById("pesquisa");
+
+    // Campos de pesquisa
+    const inputModelo = document.getElementById("pesquisaModelo");
+    const inputMarca = document.getElementById("pesquisaMarca");
+    const inputTipo = document.getElementById("pesquisaTipo");
+    const resultado = document.getElementById("resultado");
+
     let timeout;
 
     // === MODAL ===
@@ -42,48 +48,114 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     });
 
-    // === PESQUISAR TONER ===
-    inputPesquisa.addEventListener("input", () => {
+    // === EVENTOS DE PESQUISA ===
+    inputModelo.addEventListener("input", () => {
         clearTimeout(timeout);
-        timeout = setTimeout(() => buscarToner(inputPesquisa.value), 500);
+        timeout = setTimeout(() => buscarToner("modelo", inputModelo.value), 500);
     });
 
-    async function buscarToner(termo) {
-        const resultado = document.getElementById("resultado");
+    inputMarca.addEventListener("input", () => {
+        clearTimeout(timeout);
+        timeout = setTimeout(() => buscarToner("marca", inputMarca.value), 500);
+    });
+
+    inputTipo.addEventListener("input", () => {
+        clearTimeout(timeout);
+        timeout = setTimeout(() => buscarToner("tipo", inputTipo.value), 500);
+    });
+
+    // === FUNÇÃO PRINCIPAL DE BUSCA ===
+    async function buscarToner(tipo, termo) {
         if (!termo.trim()) {
             resultado.classList.add("hidden");
+            resultado.innerHTML = "";
             return;
         }
 
         try {
-            const res = await fetch(`/toners/pesquisar?termo=${encodeURIComponent(termo)}`);
+            const res = await fetch(`/toners/pesquisar?tipo=${tipo}&termo=${encodeURIComponent(termo)}`);
             const data = await res.json();
 
-            if (!data || !data.toner) {
-                resultado.classList.add("hidden");
+            resultado.classList.remove("hidden");
+            resultado.innerHTML = ""; // limpa antes de mostrar
+
+            if (data.error) {
+                resultado.innerHTML = `<p class="text-red-600">${data.error}</p>`;
                 return;
             }
 
-            resultado.classList.remove("hidden");
-            document.getElementById("nomeToner").textContent = data.toner.modelo;
-            document.getElementById("marcaToner").textContent = data.toner.marca;
-            document.getElementById("tipoToner").textContent = data.toner.tipo;
-
-            /*const tbody = document.getElementById("tabelaVendas");
-            tbody.innerHTML = "";
-
-            data.vendas.forEach(venda => {
-                const tr = document.createElement("tr");
-                tr.className = "border-b";
-                tr.innerHTML = `
-                    <td class="py-2 text-gray-600">${new Date(venda.data).toLocaleDateString()}</td>
-                    <td class="py-2 text-gray-600">${venda.cliente}</td>
-                    <td class="py-2 text-gray-600">${venda.quantidade}</td>
+            if (data.tipo === "modelo" && data.toner) {
+                // Mostra informações do toner específico
+                resultado.innerHTML = `
+                    <div class="p-4 border rounded-lg shadow bg-white">
+                        <h3 class="font-semibold text-lg">${data.toner.modelo}</h3>
+                        <p><strong>Marca:</strong> ${data.toner.marca}</p>
+                        <p><strong>Tipo:</strong> ${data.toner.tipo}</p>
+                        <p><strong>Estoque:</strong> ${data.toner.estoque} unidades</p>
+                        <h4 class="mt-3 font-semibold">Últimas 5 vendas:</h4>
+                        <table class="w-full mt-2 border">
+                            <thead>
+                                <tr class="bg-gray-100 text-left">
+                                    <th class="p-2">Data</th>
+                                    <th class="p-2">Cliente</th>
+                                    <th class="p-2">Qtd</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tabelaVendas">
+                                ${
+                    data.vendas && data.vendas.length > 0
+                        ? data.vendas.map(v => `
+                                            <tr class="border-t">
+                                                <td class="p-2">${new Date(v.Data_Venda).toLocaleDateString()}</td>
+                                                <td class="p-2">${v.Cliente}</td>
+                                                <td class="p-2">${v.Quantidade}</td>
+                                            </tr>
+                                        `).join("")
+                        : `<tr><td colspan="3" class="p-2 text-gray-500">Nenhuma venda encontrada.</td></tr>`
+                }
+                            </tbody>
+                        </table>
+                    </div>
                 `;
-                tbody.appendChild(tr);
-            });*/
+
+            } else if ((data.tipo === "marca" || data.tipo === "tipo") && data.toners) {
+                // Mostra lista de toners por marca ou tipo
+                resultado.innerHTML = `
+                    <div class="p-4 border rounded-lg shadow bg-white">
+                        <h3 class="font-semibold text-lg mb-2">
+                            Resultados (${data.tipo === "marca" ? "Marca" : "Tipo"}):
+                        </h3>
+                        <table class="w-full border">
+                            <thead>
+                                <tr class="bg-gray-100 text-left">
+                                    <th class="p-2">Modelo</th>
+                                    <th class="p-2">Marca</th>
+                                    <th class="p-2">Tipo</th>
+                                    <th class="p-2">Estoque</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${
+                    data.toners.length > 0
+                        ? data.toners.map(t => `
+                                            <tr class="border-t">
+                                                <td class="p-2">${t.Modelo}</td>
+                                                <td class="p-2">${t.Marca}</td>
+                                                <td class="p-2">${t.Tipo}</td>
+                                                <td class="p-2">${t.Estoque}</td>
+                                            </tr>
+                                        `).join("")
+                        : `<tr><td colspan="4" class="p-2 text-gray-500">Nenhum toner encontrado.</td></tr>`
+                }
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+            }
+
         } catch (err) {
             console.error("Erro na busca:", err);
+            resultado.innerHTML = `<p class="text-red-600">Erro ao buscar toners.</p>`;
         }
     }
 });

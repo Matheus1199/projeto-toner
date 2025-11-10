@@ -106,54 +106,90 @@ app.delete('/toners/:Cod_Produto', async (req, res) => {
     }
 });
 
-// ✅ PESQUISAR TONER (estoque + últimas vendas)
+// ✅ PESQUISAR TONER (por modelo, marca ou tipo)
 app.get('/toners/pesquisar', async (req, res) => {
-    const { termo } = req.query;
+    const { termo, tipo } = req.query;
 
     if (!termo || termo.trim() === "") {
         return res.status(400).json({ error: "Informe um termo para pesquisa." });
     }
 
+    if (!["modelo", "marca", "tipo"].includes(tipo)) {
+        return res.status(400).json({ error: "Tipo de pesquisa inválido (use modelo, marca ou tipo)." });
+    }
+
     try {
         const pool = await sql.connect(config);
+        let result;
 
-        // 1️⃣ Busca toner correspondente (modelo, marca ou tipo)
-        const tonerResult = await pool.request()
-            .input("termo", sql.VarChar(100), `%${termo}%`)
-            .query(`
-                SELECT TOP 1 Cod_Produto, Modelo, Marca, Tipo
-                FROM Tbl_Toner
-                WHERE Modelo LIKE @termo OR Marca LIKE @termo OR Tipo LIKE @termo
-            `);
+        if (tipo === "modelo") {
+            // 🔍 Busca toner por modelo
+            result = await pool.request()
+                .input("termo", sql.VarChar(100), `%${termo}%`)
+                .query(`
+                    SELECT TOP 1 Cod_Produto, Modelo, Marca, Tipo
+                    FROM Tbl_Toner
+                    WHERE Modelo LIKE @termo
+                `);
 
-        if (tonerResult.recordset.length === 0) {
-            return res.status(404).json({ error: "Toner não encontrado." });
+            if (result.recordset.length === 0)
+                return res.status(404).json({ error: "Toner não encontrado." });
+
+            const toner = result.recordset[0];
+
+            /*// 🔄 Busca últimas 5 vendas desse modelo
+            const vendas = await pool.request()
+                .input("modelo", sql.VarChar(100), toner.Modelo)
+                .query(`
+                    SELECT TOP 5 Cliente, Data_Venda, Quantidade
+                    FROM Tbl_Vendas
+                    WHERE Modelo = @modelo
+                    ORDER BY Data_Venda DESC
+                `);*/
+
+            return res.json({
+                tipo: "modelo",
+                toner: {
+                    modelo: toner.Modelo,
+                    marca: toner.Marca,
+                    tipo: toner.Tipo,
+                    estoque: toner.Estoque
+                },
+                vendas: []
+            });
+
+        } else if (tipo === "marca") {
+            // 🔍 Busca por marca (até 15 toners)
+            result = await pool.request()
+                .input("termo", sql.VarChar(100), `%${termo}%`)
+                .query(`
+                    SELECT TOP 15 Cod_Produto, Modelo, Marca, Tipo
+                    FROM Tbl_Toner
+                    WHERE Marca LIKE @termo
+                    ORDER BY Modelo
+                `);
+
+            return res.json({
+                tipo: "marca",
+                toners: result.recordset
+            });
+
+        } else if (tipo === "tipo") {
+            // 🔍 Busca por tipo (até 15 toners)
+            result = await pool.request()
+                .input("termo", sql.VarChar(100), `%${termo}%`)
+                .query(`
+                    SELECT TOP 15 Cod_Produto, Modelo, Marca, Tipo
+                    FROM Tbl_Toner
+                    WHERE Tipo LIKE @termo
+                    ORDER BY Marca
+                `);
+
+            return res.json({
+                tipo: "tipo",
+                toners: result.recordset
+            });
         }
-
-        const toner = tonerResult.recordset[0];
-
-        /*// 2️⃣ Busca as últimas 5 vendas desse toner
-        const vendasResult = await pool.request()
-            .input("Cod_Produto", sql.Int, toner.Cod_Produto)
-            .query(`
-                SELECT TOP 5 
-                    v.Data_Venda AS data,
-                    c.Nome AS cliente,
-                    v.Quantidade AS quantidade
-                FROM Tbl_Vendas v
-                INNER JOIN Tbl_Clientes c ON v.Id_Cliente = c.Id_Cliente
-                WHERE v.Cod_Produto = @Cod_Produto
-                ORDER BY v.Data_Venda DESC
-            `);*/
-
-        res.json({
-            toner: {
-                modelo: toner.Modelo,
-                marca: toner.Marca,
-                tipo: toner.Tipo
-            },
-            vendas: [] // vazio por enquanto
-        });
 
     } catch (error) {
         console.error("Erro ao pesquisar toner:", error);
