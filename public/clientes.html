@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Toners - TonerStock</title>
+    <title>Clientes - TonerStock</title>
 
     <!-- Tailwind -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -33,13 +33,17 @@
 
             <li>
                 <a href="toners.html"
-                   class="flex items-center px-6 py-3 text-blue-600 bg-blue-50 border-r-4 border-blue-600 font-medium">
+                   class="flex items-center px-6 py-3 text-gray-600 hover:bg-gray-100">
                     <i class='bx bxs-printer text-xl mr-3'></i> Toners
                 </a>
             </li>
 
-            <li><a href="clientes.html" class="flex items-center px-6 py-3 text-gray-600 hover:bg-gray-100">
-                <i class='bx bxs-user text-xl mr-3'></i> Clientes</a></li>
+            <li>
+                <a href="clientes.html"
+                   class="flex items-center px-6 py-3 text-blue-600 bg-blue-50 border-r-4 border-blue-600 font-medium">
+                    <i class='bx bxs-user text-xl mr-3'></i> Clientes
+                </a>
+            </li>
 
             <li><a href="fornecedores.html" class="flex items-center px-6 py-3 text-gray-600 hover:bg-gray-100">
                 <i class='bx bxs-truck text-xl mr-3'></i> Fornecedores</a></li>
@@ -55,44 +59,28 @@
 
 <!-- MAIN CONTENT -->
 <main class="ml-64 p-6 w-full">
-    <h1 class="text-3xl font-bold text-gray-700 mb-6">Toners</h1>
 
-    <!-- BOTÃO DE NOVO TONER -->
-    <button id="btnNovoToner"
+    <h1 class="text-3xl font-bold text-gray-700 mb-6">Clientes</h1>
+
+    <button id="btnNovoCliente"
             class="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-xl shadow-sm mb-5">
-        <i class='bx bx-plus text-xl'></i> Novo Toner
+        <i class='bx bx-plus text-xl'></i> Novo Cliente
     </button>
 
-    <!-- CAMPO DE PESQUISA -->
-    <div class="bg-white p-6 rounded-2xl shadow-sm border mb-6">
-        <label for="pesquisa" class="block text-gray-600 font-medium mb-2">Pesquisar toner</label>
-        <input id="pesquisa" type="text" placeholder="Digite modelo, marca ou tipo..."
-               class="w-full p-3 border rounded-xl focus:ring-2 focus:ring-blue-600 focus:outline-none">
-    </div>
-
-    <!-- RESULTADO DA PESQUISA -->
-    <div id="resultado" class="hidden bg-white p-6 rounded-2xl shadow-sm border">
-        <h2 class="text-2xl font-bold text-gray-700 mb-2" id="nomeToner"></h2>
-        <p class="text-gray-600 mb-1"><strong>Marca:</strong> <span id="marcaToner"></span></p>
-        <p class="text-gray-600 mb-4"><strong>Tipo:</strong> <span id="tipoToner"></span></p>
-
-        <div class="bg-blue-50 border-l-4 border-blue-600 p-4 rounded-lg mb-6">
-            <p class="text-blue-800 font-medium">
-                <i class='bx bxs-box mr-2'></i>
-                Em estoque: <span id="estoqueToner" class="font-bold"></span> unidades
-            </p>
-        </div>
-
-        <h3 class="text-lg font-semibold text-gray-700 mb-2">Últimas 5 vendas</h3>
-        <table class="w-full border-collapse">
+    <!-- TABELA -->
+    <div class="bg-white p-6 rounded-2xl shadow-sm border">
+        <table class="w-full text-left border-collapse">
             <thead>
             <tr class="border-b">
-                <th class="py-2 text-gray-500">Data</th>
-                <th class="py-2 text-gray-500">Cliente</th>
-                <th class="py-2 text-gray-500">Quantidade</th>
+                <th class="py-3 text-gray-500">ID</th>
+                <th class="py-3 text-gray-500">Nome</th>
+                <th class="py-3 text-gray-500">Ativo</th>
+                <th class="py-3 text-gray-500">Vendedor</th>
+                <th class="py-3 text-gray-500">Ações</th>
             </tr>
             </thead>
-            <tbody id="tabelaVendas"></tbody>
+
+            <tbody id="listaClientes"></tbody>
         </table>
     </div>
 </main>
@@ -102,20 +90,25 @@
      class="hidden fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
 
     <div class="bg-white w-96 p-6 rounded-2xl shadow-lg">
-        <h2 id="modalTitle" class="text-xl font-bold text-gray-700 mb-4">Novo Toner</h2>
+        <h2 id="modalTitle" class="text-xl font-bold text-gray-700 mb-4">Novo Cliente</h2>
 
-        <input type="hidden" id="codProduto">
+        <input type="hidden" id="idCliente">
 
-        <label class="block text-gray-600 font-medium">Modelo</label>
-        <input id="modelo" type="text" class="w-full p-2 border rounded-xl mb-3">
+        <label class="block text-gray-600 font-medium">Nome</label>
+        <input id="nome" type="text"
+               class="w-full p-2 border rounded-xl mb-3">
 
-        <label class="block text-gray-600 font-medium">Marca</label>
-        <input id="marca" type="text" class="w-full p-2 border rounded-xl mb-3">
+        <label class="block text-gray-600 font-medium">Ativo</label>
+        <label class="flex items-center gap-3 mb-3">
+            <input id="ativo" type="checkbox" class="h-5 w-5">
+            <span class="text-gray-700">Cliente está ativo</span>
+        </label>
 
-        <label class="block text-gray-600 font-medium">Tipo</label>
-        <input id="tipo" type="text" class="w-full p-2 border rounded-xl mb-4">
+        <label class="block text-gray-600 font-medium">ID do Vendedor</label>
+        <input id="idVendedor" type="number"
+               class="w-full p-2 border rounded-xl mb-4">
 
-        <button id="salvarToner"
+        <button id="salvarCliente"
                 class="w-full bg-green-600 hover:bg-green-700 text-white py-2 rounded-xl mb-2">
             Salvar
         </button>
@@ -127,11 +120,12 @@
     </div>
 </div>
 
-<script src="js/toners.js"></script>
+<!-- JS -->
+<script src="js/clientes.js"></script>
 
 <script>
     // Abrir modal
-    document.getElementById("btnNovoToner").onclick = () => {
+    document.getElementById("btnNovoCliente").onclick = () => {
         document.getElementById("modal-bg").classList.remove("hidden");
     };
 
