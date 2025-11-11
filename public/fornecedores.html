@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fornecedores - TonerStock</title>
+
+    <!-- Tailwind -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Boxicons -->
+    <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
+</head>
+
+<body class="bg-gray-50 flex min-h-screen">
+
+<!-- SIDEBAR -->
+<aside class="w-64 bg-white shadow-md flex flex-col fixed h-full">
+    <div class="flex items-center gap-2 px-6 py-4 border-b">
+        <i class='bx bxs-invader text-3xl text-blue-600'></i>
+        <h1 class="text-xl font-bold text-gray-700">TonerStock</h1>
+    </div>
+
+    <nav class="flex-1 mt-4">
+        <ul class="space-y-1">
+            <li><a href="dashboard.html" class="flex items-center px-6 py-3 text-gray-600 hover:bg-gray-100">
+                <i class='bx bxs-dashboard text-xl mr-3'></i> Dashboard</a></li>
+
+            <li><a href="toners.html" class="flex items-center px-6 py-3 text-gray-600 hover:bg-gray-100">
+                <i class='bx bxs-printer text-xl mr-3'></i> Toners</a></li>
+
+            <li><a href="clientes.html" class="flex items-center px-6 py-3 text-gray-600 hover:bg-gray-100">
+                <i class='bx bxs-user text-xl mr-3'></i> Clientes</a></li>
+
+            <li><a href="fornecedores.html" class="flex items-center px-6 py-3 text-blue-600 bg-blue-50 border-r-4 border-blue-600 font-medium">
+                <i class='bx bxs-truck text-xl mr-3'></i> Fornecedores</a></li>
+
+            <li><a href="vendas.html" class="flex items-center px-6 py-3 text-gray-600 hover:bg-gray-100">
+                <i class='bx bxs-cart text-xl mr-3'></i> Vendas</a></li>
+
+            <li><a href="compras.html" class="flex items-center px-6 py-3 text-gray-600 hover:bg-gray-100">
+                <i class='bx bxs-basket text-xl mr-3'></i> Compras</a></li>
+        </ul>
+    </nav>
+</aside>
+
+<!-- MAIN CONTENT -->
+<main class="ml-64 p-6 w-full">
+
+    <div class="flex justify-between items-center mb-6">
+        <h1 class="text-3xl font-bold text-gray-700">Fornecedores</h1>
+        <button id="btnNovoFornecedor"
+                class="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-xl shadow-sm">
+            <i class='bx bx-plus text-xl'></i> Novo Fornecedor
+        </button>
+    </div>
+
+    <!-- LISTA DE FORNECEDORES -->
+    <div class="bg-white p-6 rounded-2xl shadow-sm border">
+        <h2 class="text-xl font-semibold text-gray-700 mb-3">Lista de Fornecedores</h2>
+
+        <table class="w-full border-collapse">
+            <thead>
+            <tr class="border-b bg-gray-100 text-left">
+                <th class="py-2 px-3 text-gray-600">ID</th>
+                <th class="py-2 px-3 text-gray-600">Nome</th>
+                <th class="py-2 px-3 text-gray-600">Status</th>
+                <th class="py-2 px-3 text-gray-600 text-center">Ações</th>
+            </tr>
+            </thead>
+            <tbody id="tabelaFornecedores" class="text-gray-700"></tbody>
+        </table>
+    </div>
+</main>
+
+<!-- MODAL -->
+<div id="modal-bg"
+     class="hidden fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+
+    <div class="bg-white w-96 p-6 rounded-2xl shadow-lg">
+        <h2 id="modalTitle" class="text-xl font-bold text-gray-700 mb-4">Novo Fornecedor</h2>
+
+        <input type="hidden" id="idFornecedor">
+
+        <label class="block text-gray-600 font-medium">Nome</label>
+        <input id="nomeFornecedor" type="text" class="w-full p-2 border rounded-xl mb-3">
+
+        <label class="block text-gray-600 font-medium">Ativo</label>
+        <label class="flex items-center gap-3 mb-3">
+            <input id="statusFornecedor" type="checkbox" class="h-5 w-5">
+            <span class="text-gray-700">Fornecedor está ativo</span>
+        </label>
+
+        <button id="salvarFornecedor" class="w-full bg-green-600 hover:bg-green-700 text-white py-2 rounded-xl mb-2">
+            Salvar
+        </button>
+
+        <button onclick="fecharModal()" class="w-full bg-gray-300 hover:bg-gray-400 text-gray-800 py-2 rounded-xl">
+            Cancelar
+        </button>
+    </div>
+</div>
+
+<script src="js/fornecedores.js"></script>
+
+</body>
+</html>
