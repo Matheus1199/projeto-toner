@@ -412,6 +412,23 @@ app.delete("/fornecedores/:id", async (req, res) => {
     }
 });
 
+// === DASHBOARD ===
+app.get("/dashboard", async (req, res) => {
+    try {
+        const result = await pool.request().query(`
+            SELECT 
+                (SELECT COUNT(Id_Cliente) FROM Tbl_Clientes WHERE Ativo = 1) AS totalClientes,
+                (SELECT COUNT(Id_Fornecedor) FROM Tbl_Fornecedores WHERE Status = 1) AS totalFornecedores
+        `);
+
+        res.json(result.recordset[0]);
+    } catch (err) {
+        console.error("Erro ao buscar dados do dashboard:", err);
+        res.status(500).send("Erro ao buscar dados do dashboard");
+    }
+});
+
+
 
 
 // ✅ SERVIDOR
