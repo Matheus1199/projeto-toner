@@ -220,6 +220,37 @@ app.post('/clientes', async (req, res) => {
     }
 });
 
+app.get('/clientes/pesquisar', async (req, res) => {
+    const { nome } = req.query;
+    try {
+        const pool = await sql.connect(config);
+        const clienteResult = await pool.request()
+            .input("nome", sql.VarChar, `%${nome}%`)
+            .query("SELECT TOP 1 Id_cliente, Nome, Ativo, Id_vendedor FROM Tbl_Clientes WHERE Nome LIKE @nome");
+
+        if (clienteResult.recordset.length === 0) {
+            return res.status(404).json({ error: "Cliente não encontrado" });
+        }
+
+        const cliente = clienteResult.recordset[0];
+
+        /*const comprasResult = await pool.request()
+            .input("id", sql.Int, cliente.Id_cliente)
+            .query(`
+                SELECT TOP 5 c.Data, t.Modelo AS Produto, c.Quantidade
+                FROM Tbl_Compra c
+                JOIN Tbl_Toner t ON c.Id_toner = t.Cod_Produto
+                WHERE c.Id_cliente = @id
+                ORDER BY c.Data DESC
+            `); */
+
+        res.json({ cliente, compras: [] });
+    } catch (error) {
+        console.error("Erro ao pesquisar cliente:", error);
+        res.status(500).json({ error: "Erro ao pesquisar cliente" });
+    }
+});
+
 
 // ✅ LISTAR CLIENTES
 app.get('/clientes', async (req, res) => {

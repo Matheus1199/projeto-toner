@@ -10,7 +10,6 @@
 
     <!-- Boxicons -->
     <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
-
 </head>
 
 <body class="bg-gray-50 flex min-h-screen">
@@ -24,26 +23,14 @@
 
     <nav class="flex-1 mt-4">
         <ul class="space-y-1">
-            <li>
-                <a href="dashboard.html"
-                   class="flex items-center px-6 py-3 text-gray-600 hover:bg-gray-100">
-                    <i class='bx bxs-dashboard text-xl mr-3'></i> Dashboard
-                </a>
-            </li>
+            <li><a href="dashboard.html" class="flex items-center px-6 py-3 text-gray-600 hover:bg-gray-100">
+                <i class='bx bxs-dashboard text-xl mr-3'></i> Dashboard</a></li>
 
-            <li>
-                <a href="toners.html"
-                   class="flex items-center px-6 py-3 text-gray-600 hover:bg-gray-100">
-                    <i class='bx bxs-printer text-xl mr-3'></i> Toners
-                </a>
-            </li>
+            <li><a href="toners.html" class="flex items-center px-6 py-3 text-gray-600 hover:bg-gray-100">
+                <i class='bx bxs-printer text-xl mr-3'></i> Toners</a></li>
 
-            <li>
-                <a href="clientes.html"
-                   class="flex items-center px-6 py-3 text-blue-600 bg-blue-50 border-r-4 border-blue-600 font-medium">
-                    <i class='bx bxs-user text-xl mr-3'></i> Clientes
-                </a>
-            </li>
+            <li><a href="clientes.html" class="flex items-center px-6 py-3 text-blue-600 bg-blue-50 border-r-4 border-blue-600 font-medium">
+                <i class='bx bxs-user text-xl mr-3'></i> Clientes</a></li>
 
             <li><a href="fornecedores.html" class="flex items-center px-6 py-3 text-gray-600 hover:bg-gray-100">
                 <i class='bx bxs-truck text-xl mr-3'></i> Fornecedores</a></li>
@@ -60,27 +47,44 @@
 <!-- MAIN CONTENT -->
 <main class="ml-64 p-6 w-full">
 
-    <h1 class="text-3xl font-bold text-gray-700 mb-6">Clientes</h1>
+    <div class="flex justify-between items-center mb-6">
+        <h1 class="text-3xl font-bold text-gray-700">Clientes</h1>
+        <button id="btnNovoCliente"
+                class="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-xl shadow-sm">
+            <i class='bx bx-plus text-xl'></i> Novo Cliente
+        </button>
+    </div>
 
-    <button id="btnNovoCliente"
-            class="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-xl shadow-sm mb-5">
-        <i class='bx bx-plus text-xl'></i> Novo Cliente
-    </button>
+    <!-- PESQUISAR CLIENTE -->
+    <div class="bg-white p-6 rounded-2xl shadow-sm border mb-6">
+        <h2 class="text-xl font-semibold text-gray-700 mb-3">Pesquisar Cliente</h2>
 
-    <!-- TABELA -->
-    <div class="bg-white p-6 rounded-2xl shadow-sm border">
-        <table class="w-full text-left border-collapse">
+        <div class="flex justify-end">
+            <input id="pesquisaCliente"
+                   type="text"
+                   placeholder="Digite o nome do cliente..."
+                   class="border p-3 rounded-xl w-1/3 focus:outline-none focus:ring-2 focus:ring-blue-400">
+        </div>
+    </div>
+
+    <!-- RESULTADO -->
+    <div id="resultado" class="hidden bg-white p-6 rounded-2xl shadow-sm border">
+        <h2 class="text-xl font-semibold text-gray-700 mb-4">Informações do Cliente</h2>
+
+        <p><strong>Nome:</strong> <span id="nomeCliente" class="text-gray-700"></span></p>
+        <p><strong>Status:</strong> <span id="statusCliente" class="text-gray-700"></span></p>
+        <p><strong>Canal de Aquisição:</strong> <span id="vendedorCliente" class="text-gray-700"></span></p>
+
+        <h3 class="text-lg font-semibold text-gray-700 mt-6 mb-2">Últimas 5 Compras</h3>
+        <table class="w-full border-collapse">
             <thead>
-            <tr class="border-b">
-                <th class="py-3 text-gray-500">ID</th>
-                <th class="py-3 text-gray-500">Nome</th>
-                <th class="py-3 text-gray-500">Ativo</th>
-                <th class="py-3 text-gray-500">Vendedor</th>
-                <th class="py-3 text-gray-500">Ações</th>
+            <tr class="border-b bg-gray-100">
+                <th class="py-2 text-gray-600">Data</th>
+                <th class="py-2 text-gray-600">Produto</th>
+                <th class="py-2 text-gray-600">Quantidade</th>
             </tr>
             </thead>
-
-            <tbody id="listaClientes"></tbody>
+            <tbody id="tabelaCompras"></tbody>
         </table>
     </div>
 </main>
@@ -95,8 +99,7 @@
         <input type="hidden" id="idCliente">
 
         <label class="block text-gray-600 font-medium">Nome</label>
-        <input id="nome" type="text"
-               class="w-full p-2 border rounded-xl mb-3">
+        <input id="nome" type="text" class="w-full p-2 border rounded-xl mb-3">
 
         <label class="block text-gray-600 font-medium">Ativo</label>
         <label class="flex items-center gap-3 mb-3">
@@ -104,36 +107,24 @@
             <span class="text-gray-700">Cliente está ativo</span>
         </label>
 
-        <label class="block text-gray-600 font-medium">ID do Vendedor</label>
-        <input id="idVendedor" type="number"
-               class="w-full p-2 border rounded-xl mb-4">
+        <label for="idVendedor" class="block text-gray-700 font-semibold mb-1">Canal de Aquisição</label>
+        <select id="idVendedor" class="w-full border border-gray-300 rounded p-2">
+            <option value="1">Barsotti</option>
+            <option value="6">Whatsapp</option>
+            <option value="7">Google</option>
+        </select>
 
-        <button id="salvarCliente"
-                class="w-full bg-green-600 hover:bg-green-700 text-white py-2 rounded-xl mb-2">
+        <button id="salvarCliente" class="w-full bg-green-600 hover:bg-green-700 text-white py-2 rounded-xl mb-2">
             Salvar
         </button>
 
-        <button onclick="fecharModal()"
-                class="w-full bg-gray-300 hover:bg-gray-400 text-gray-800 py-2 rounded-xl">
+        <button onclick="fecharModal()" class="w-full bg-gray-300 hover:bg-gray-400 text-gray-800 py-2 rounded-xl">
             Cancelar
         </button>
     </div>
 </div>
 
-<!-- JS -->
 <script src="js/clientes.js"></script>
-
-<script>
-    // Abrir modal
-    document.getElementById("btnNovoCliente").onclick = () => {
-        document.getElementById("modal-bg").classList.remove("hidden");
-    };
-
-    // Fechar modal
-    function fecharModal() {
-        document.getElementById("modal-bg").classList.add("hidden");
-    }
-</script>
 
 </body>
 </html>

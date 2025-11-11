@@ -1,101 +1,93 @@
-// Abrir modal
-document.getElementById("btnNovoCliente").onclick = () => {
-    document.getElementById("modalTitle").innerText = "Novo Cliente";
-    document.getElementById("idCliente").value = "";
-    document.getElementById("nome").value = "";
-    document.getElementById("ativo").checked = true;
-    document.getElementById("idVendedor").value = "";
-    document.getElementById("modal-bg").classList.remove("hidden");
-};
+document.addEventListener("DOMContentLoaded", () => {
+    const inputPesquisa = document.getElementById("pesquisaCliente");
+    const resultado = document.getElementById("resultado");
+    const tbody = document.getElementById("tabelaCompras");
+    let timeout;
 
-// Fechar modal
-function fecharModal() {
-    document.getElementById("modal-bg").classList.add("hidden");
-}
+    // === PESQUISAR CLIENTE ===
+    inputPesquisa.addEventListener("input", () => {
+        clearTimeout(timeout);
+        const termo = inputPesquisa.value.trim();
+        if (!termo) {
+            resultado.classList.add("hidden");
+            return;
+        }
 
-// Carregar lista de clientes
-function carregarClientes() {
-    fetch("/clientes")
-        .then(res => res.json())
-        .then(clientes => {
-            const lista = document.getElementById("listaClientes");
-            lista.innerHTML = "";
+        timeout = setTimeout(() => buscarCliente(termo), 500);
+    });
 
-            clientes.forEach(c => {
-                lista.innerHTML += `
-                    <tr class="border-b">
-                        <td class="py-3">${c.Id_cliente}</td>
-                        <td class="py-3">${c.Nome}</td>
-                        <td class="py-3">
-                            <span class="px-3 py-1 rounded-full text-white ${c.Ativo ? "bg-green-600" : "bg-red-600"}">
-                                ${c.Ativo ? "Ativo" : "Inativo"}
-                            </span>
-                        </td>
-                        <td class="py-3">${c.Id_vendedor}</td>
-                        <td class="py-3">
-                            <button 
-                                class="bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-1 rounded-lg mr-2"
-                                onclick="editarCliente(${c.Id_cliente})">
-                                Editar
-                            </button>
+    async function buscarCliente(nome) {
+        try {
+            const res = await fetch(`/clientes/pesquisar?nome=${encodeURIComponent(nome)}`);
+            const data = await res.json();
 
-                            <button 
-                                class="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded-lg"
-                                onclick="excluirCliente(${c.Id_cliente})">
-                                Excluir
-                            </button>
-                        </td>
-                    </tr>
-                `;
-            });
-        });
-}
+            if (!data || !data.cliente) {
+                resultado.classList.add("hidden");
+                return;
+            }
 
-carregarClientes();
+            resultado.classList.remove("hidden");
+            document.getElementById("nomeCliente").textContent = data.cliente.Nome;
+            document.getElementById("statusCliente").textContent = data.cliente.Ativo ? "Ativo" : "Inativo";
 
-// Salvar cliente
-document.getElementById("salvarCliente").onclick = () => {
-    const id = document.getElementById("idCliente").value;
+            // === Exibe o nome correspondente do canal de aquisição ===
+            const canalNome = {
+                1: "Barsotti",
+                6: "Whatsapp",
+                7: "Google"
+            }[data.cliente.Id_vendedor] || "Desconhecido";
 
-    const data = {
-        nome: document.getElementById("nome").value,
-        ativo: document.getElementById("ativo").checked ? 1 : 0,
-        id_vendedor: document.getElementById("idVendedor").value
+            document.getElementById("vendedorCliente").textContent = canalNome;
+
+            tbody.innerHTML = "";
+        } catch (err) {
+            console.error("Erro na busca:", err);
+        }
+    }
+
+    // === MODAL ===
+    document.getElementById("btnNovoCliente").onclick = () => {
+        document.getElementById("modalTitle").innerText = "Novo Cliente";
+        document.getElementById("idCliente").value = "";
+        document.getElementById("nome").value = "";
+        document.getElementById("ativo").checked = true;
+
+        // === Atualiza o seletor de canal ===
+        const select = document.getElementById("idVendedor");
+        select.innerHTML = `
+            <option value="1">Barsotti</option>
+            <option value="6">Whatsapp</option>
+            <option value="7">Google</option>
+        `;
+        select.value = "1";
+
+        document.getElementById("modal-bg").classList.remove("hidden");
     };
 
-    const url = id ? `/clientes/${id}` : "/clientes";
-    const method = id ? "PUT" : "POST";
+    window.fecharModal = function () {
+        document.getElementById("modal-bg").classList.add("hidden");
+    };
 
-    fetch(url, {
-        method,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data)
-    }).then(() => {
-        carregarClientes();
-        fecharModal();
-    });
-};
+    // === SALVAR CLIENTE ===
+    document.getElementById("salvarCliente").onclick = () => {
+        const id = document.getElementById("idCliente").value;
+        const select = document.getElementById("idVendedor");
 
-// Editar cliente
-function editarCliente(id) {
-    fetch(`/clientes/${id}`)
-        .then(res => res.json())
-        .then(c => {
-            document.getElementById("modalTitle").innerText = "Editar Cliente";
+        const data = {
+            nome: document.getElementById("nome").value,
+            ativo: document.getElementById("ativo").checked ? 1 : 0,
+            id_vendedor: parseInt(select.value) // envia o número correto (1, 6 ou 7)
+        };
 
-            document.getElementById("idCliente").value = c.Id_cliente;
-            document.getElementById("nome").value = c.Nome;
-            document.getElementById("ativo").checked = c.Ativo === 1;
-            document.getElementById("idVendedor").value = c.Id_vendedor;
+        const url = id ? `/clientes/${id}` : "/clientes";
+        const method = id ? "PUT" : "POST";
 
-            document.getElementById("modal-bg").classList.remove("hidden");
+        fetch(url, {
+            method,
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(data)
+        }).then(() => {
+            fecharModal();
         });
-}
-
-// Excluir cliente
-function excluirCliente(id) {
-    if (!confirm("Deseja realmente excluir este cliente?")) return;
-
-    fetch(`/clientes/${id}`, { method: "DELETE" })
-        .then(() => carregarClientes());
-}
+    };
+});
