@@ -209,7 +209,7 @@ app.post('/clientes', async (req, res) => {
             .input("ativo", sql.Bit, ativo)
             .input("id_vendedor", sql.Int, id_vendedor)
             .query(`
-                INSERT INTO Tbl_Clientes (Nome, Ativo, Id_Vendedor)
+                INSERT INTO Tbl_Clientes (Nome, Ativo, Id_vendedor)
                 VALUES (@nome, @ativo, @id_vendedor)
             `);
 
@@ -273,7 +273,7 @@ app.put('/clientes/:Id_cliente', async (req, res) => {
                 UPDATE Tbl_Clientes
                 SET Nome = @nome,
                     Ativo = @ativo,
-                    Id_Vendedor = @id_vendedor
+                    Id_vendedor = @id_vendedor
                 WHERE Id_Cliente = @Id_cliente
             `);
 
