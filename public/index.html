@@ -2,17 +2,48 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <title>Login - Sistema de Toner</title>
-    <link rel="stylesheet" href="css/index.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - TonerStock</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
 </head>
-<body>
-<div class="container">
-    <img src="./img/logo_barsotti.png" alt="Logo Barsotti Soluções" class="logo">
-    <form id="loginForm">
-        <input type="text" id="usuario" placeholder="Usuário" required>
-        <input type="password" id="senha" placeholder="Senha" required>
-        <button type="submit">Entrar</button>
+
+<body class="bg-gray-100 flex items-center justify-center min-h-screen">
+
+<!-- Card de Login -->
+<div class="bg-white shadow-lg rounded-2xl w-full max-w-md p-8 border border-gray-200">
+    <div class="flex flex-col items-center mb-6">
+        <img src="img/logo_barsotti.png" alt="Logo Barsotti">
+    </div>
+
+    <form id="loginForm" class="space-y-4">
+        <div>
+            <label for="usuario" class="block text-gray-600 mb-1 font-medium">Usuário</label>
+            <div class="flex items-center border border-gray-300 rounded-lg px-3">
+                <i class='bx bxs-user text-gray-400 text-xl'></i>
+                <input type="text" id="usuario" placeholder="Digite seu usuário"
+                       class="w-full p-2 outline-none text-gray-700" required>
+            </div>
+        </div>
+
+        <div>
+            <label for="senha" class="block text-gray-600 mb-1 font-medium">Senha</label>
+            <div class="flex items-center border border-gray-300 rounded-lg px-3">
+                <i class='bx bxs-lock-alt text-gray-400 text-xl'></i>
+                <input type="password" id="senha" placeholder="Digite sua senha"
+                       class="w-full p-2 outline-none text-gray-700" required>
+            </div>
+        </div>
+
+        <button type="submit"
+                class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 rounded-lg transition">
+            Entrar
+        </button>
     </form>
+
+    <div class="text-center mt-6 text-gray-400 text-sm">
+        <p>&copy; 2025 Barsotti Soluções</p>
+    </div>
 </div>
 
 <script>
@@ -23,20 +54,27 @@
         const usuario = document.getElementById('usuario').value;
         const senha = document.getElementById('senha').value;
 
-        const res = await fetch('/login', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({ usuario, senha })
-        });
+        try {
+            const res = await fetch('/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ usuario, senha })
+            });
 
-        const data = await res.json();
-        if (data.success) {
-            localStorage.setItem('token', data.token);
-            window.location.href = '/dashboard.html';
-        } else {
-            alert('Usuário ou senha inválidos!');
+            const data = await res.json();
+
+            if (data.success) {
+                localStorage.setItem('token', data.token);
+                window.location.href = '/dashboard.html';
+            } else {
+                alert('Usuário ou senha inválidos!');
+            }
+        } catch (error) {
+            console.error('Erro ao fazer login:', error);
+            alert('Erro ao conectar com o servidor.');
         }
     });
 </script>
+
 </body>
 </html>

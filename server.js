@@ -58,6 +58,21 @@ app.post('/toners', async (req, res) => {
     }
 });
 
+app.get("/toners/listar", async (req, res) => {
+    try {
+        const result = await pool.request().query(`
+            SELECT Cod_Produto, Marca, Modelo, Tipo
+            FROM Tbl_Toner
+            ORDER BY Marca, Modelo
+        `);
+        res.json(result.recordset);
+    } catch (err) {
+        console.error("Erro ao buscar toner:", err);
+        res.status(500).json({ error: "Erro ao buscar toners." });
+    }
+});
+
+
 // ✅ EDITAR TONER
 app.put('/toners/:Cod_Produto', async (req, res) => {
     const { Cod_Produto } = req.params;
@@ -354,6 +369,19 @@ app.get("/fornecedores", async (req, res) => {
     }
 });
 
+app.get('/fornecedores/listar', async (req, res) => {
+    try {
+        const result = await pool.request().query(`
+          SELECT Id_Fornecedor, Nome, Status
+          FROM Tbl_Fornecedores
+      `);
+        res.json(result.recordset);
+    } catch (err) {
+        console.error("Erro ao buscar fornecedor:", err);
+        res.status(500).json({ error: "Erro ao buscar fornecedores." });
+    }
+});
+
 app.get("/fornecedores/:id", async (req, res) => {
     try {
         const id = req.params.id;
@@ -366,6 +394,7 @@ app.get("/fornecedores/:id", async (req, res) => {
         res.status(500).send("Erro ao buscar fornecedor");
     }
 });
+
 
 app.post("/fornecedores", async (req, res) => {
     try {
@@ -428,6 +457,81 @@ app.get("/dashboard", async (req, res) => {
     }
 });
 
+// Retorna 10 últimas compras (com nome do fornecedor)
+app.get("/compras/listar", async (req, res) => {
+    const result = await pool.request().query(`
+    SELECT TOP 10 
+      C.Cod_Compra, 
+      C.Data_Compra, 
+      C.Cod_Fornecedor,
+      F.Nome AS Nome_Fornecedor,
+      C.NDocumento,
+      C.Valor_Total,
+      C.Cond_Pagamento,
+      C.Obs
+    FROM Tbl_Compras C
+    LEFT JOIN Tbl_Fornecedores F ON C.Cod_Fornecedor = F.Id_Fornecedor
+    ORDER BY C.Data_Compra DESC
+  `);
+    res.json(result.recordset);
+});
+
+
+// 🔹 Finalizar compra — grava Tbl_Compras e Tbl_CompraItens (com saldo)
+app.post('/compras/finalizar', async (req, res) => {
+    let { Cod_Fornecedor, NDocumento, Cond_Pagamento, Obs, carrinho } = req.body;
+
+    if (!carrinho.length) {
+        return res.status(400).json({ error: "O carrinho está vazio." });
+    }
+
+    try {
+        const total = carrinho.reduce((sum, item) => sum + item.Subtotal, 0);
+
+        // 🧾 1. Cria o registro principal da compra
+        const compraResult = await pool.request()
+            .input("Data_Compra", sql.Date, new Date())
+            .input("Cod_Fornecedor", sql.Int, Cod_Fornecedor)
+            .input("NDocumento", sql.VarChar(50), NDocumento)
+            .input("Valor_Total", sql.Decimal(18, 2), total)
+            .input("Cond_Pagamento", sql.VarChar(50), Cond_Pagamento)
+            .input("Obs", sql.VarChar(255), Obs)
+            .query(`
+                INSERT INTO Tbl_Compras (Data_Compra, Cod_Fornecedor, NDocumento, Valor_Total, Cond_Pagamento, Obs)
+                    OUTPUT INSERTED.Cod_Compra
+                VALUES (@Data_Compra, @Cod_Fornecedor, @NDocumento, @Valor_Total, @Cond_Pagamento, @Obs)
+            `);
+
+        const Cod_Compra = compraResult.recordset[0].Cod_Compra;
+
+        // 🧾 2. Insere os itens da compra com Saldo = Quantidade
+        for (const item of carrinho) {
+            await pool.request()
+                .input("Cod_Compra", sql.Int, Cod_Compra)
+                .input("Cod_Toner", sql.Int, item.Cod_Produto)
+                .input("Quantidade", sql.Int, item.Quantidade)
+                .input("Valor_Compra", sql.Decimal(18, 2), item.ValorUnitario)
+                .input("Saldo", sql.Int, item.Quantidade)
+                .query(`
+                    INSERT INTO Tbl_ComprasItens (Cod_Compra, Cod_Toner, Quantidade, Valor_Compra, Saldo)
+                    VALUES (@Cod_Compra, @Cod_Toner, @Quantidade, @Valor_Compra, @Saldo)
+                `);
+        }
+
+        // 🧹 3. Limpa o carrinho após finalizar
+        carrinho = [];
+
+        res.json({
+            message: "Compra finalizada com sucesso!",
+            Cod_Compra,
+            Valor_Total: total
+        });
+
+    } catch (error) {
+        console.error("Erro ao finalizar compra:", error);
+        res.status(500).json({ error: "Erro ao finalizar compra." });
+    }
+});
 
 
 

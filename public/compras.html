@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Compras - TonerStock</title>
+
+    <!-- Tailwind -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Boxicons -->
+    <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
+</head>
+
+<body class="bg-gray-50 flex min-h-screen">
+
+<!-- SIDEBAR -->
+<aside class="w-64 bg-white shadow-md flex flex-col fixed h-full">
+    <div class="flex items-center gap-2 px-6 py-4 border-b">
+        <h1 class="text-xl font-bold text-gray-700">Sistema de Toner</h1>
+    </div>
+
+    <nav class="flex-1 mt-4">
+        <ul class="space-y-1">
+            <li><a href="dashboard.html" class="flex items-center px-6 py-3 text-gray-600 hover:bg-gray-100">
+                <i class='bx bxs-dashboard text-xl mr-3'></i> Dashboard</a></li>
+
+            <li><a href="toners.html" class="flex items-center px-6 py-3 text-gray-600 hover:bg-gray-100">
+                <i class='bx bxs-printer text-xl mr-3'></i> Toners</a></li>
+
+            <li><a href="clientes.html" class="flex items-center px-6 py-3 text-gray-600 hover:bg-gray-100">
+                <i class='bx bxs-user text-xl mr-3'></i> Clientes</a></li>
+
+            <li><a href="fornecedores.html" class="flex items-center px-6 py-3 text-gray-600 hover:bg-gray-100">
+                <i class='bx bxs-truck text-xl mr-3'></i> Fornecedores</a></li>
+
+            <li><a href="vendas.html" class="flex items-center px-6 py-3 text-gray-600 hover:bg-gray-100">
+                <i class='bx bxs-cart text-xl mr-3'></i> Vendas</a></li>
+
+            <li><a href="compras.html" class="flex items-center px-6 py-3 text-blue-600 bg-blue-50 border-r-4 border-blue-600 font-medium">
+                <i class='bx bxs-basket text-xl mr-3'></i> Compras</a></li>
+        </ul>
+    </nav>
+</aside>
+
+<!-- MAIN CONTENT -->
+<main class="ml-64 p-6 w-full">
+
+    <div class="flex justify-between items-center mb-6">
+        <h1 class="text-3xl font-bold text-gray-700">Compras</h1>
+        <button id="btnNovaCompra"
+                class="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-xl shadow-sm">
+            <i class='bx bx-plus text-xl'></i> Nova Compra
+        </button>
+    </div>
+
+    <!-- LISTA DE COMPRAS -->
+    <div class="bg-white p-6 rounded-2xl shadow-sm border">
+        <h2 class="text-xl font-semibold text-gray-700 mb-3">Últimas 10 Compras</h2>
+
+        <table class="w-full border-collapse">
+            <thead>
+            <tr class="border-b bg-gray-100 text-left">
+                <th class="py-2 px-3 text-gray-600">Código</th>
+                <th class="py-2 px-3 text-gray-600">Data</th>
+                <th class="py-2 px-3 text-gray-600">Fornecedor</th>
+                <th class="py-2 px-3 text-gray-600">Valor Total</th>
+                <th class="py-2 px-3 text-gray-600">Nº Documento</th>
+            </tr>
+            </thead>
+            <tbody id="tabelaCompras" class="text-gray-700"></tbody>
+        </table>
+    </div>
+</main>
+
+<!-- MODAL -->
+<div id="modal-bg"
+     class="hidden fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+
+    <div class="bg-white w-[800px] p-6 rounded-2xl shadow-lg max-h-[90vh] overflow-y-auto">
+        <h2 id="modalTitle" class="text-xl font-bold text-gray-700 mb-4">Nova Compra</h2>
+
+        <input type="hidden" id="codCompra">
+
+        <!-- DADOS PRINCIPAIS -->
+        <div class="grid grid-cols-2 gap-4 mb-4">
+            <div>
+                <label class="block text-gray-600 font-medium">Data da Compra</label>
+                <input id="dataCompra" type="date" class="w-full p-2 border rounded-xl">
+            </div>
+            <div>
+                <label class="block text-gray-600 font-medium">Fornecedor</label>
+                <select id="selectFornecedor" class="w-full p-2 border rounded-xl">
+                    <option value="">Selecione o fornecedor</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- ADIÇÃO DE TONERS -->
+        <div class="border-t border-b py-4 mb-4">
+            <h3 class="text-lg font-semibold text-gray-700 mb-3">Adicionar Toner</h3>
+            <div class="grid grid-cols-4 gap-3 mb-3">
+                <select id="selectToner" class="p-2 border rounded-xl col-span-2">
+                    <option value="">Selecione o toner</option>
+                </select>
+                <input id="inputQtd" type="number" min="1" value="1" class="p-2 border rounded-xl" placeholder="Qtd.">
+                <input id="inputValor" type="number" min="0" step="0.01" class="p-2 border rounded-xl" placeholder="Valor Unitário">
+            </div>
+            <button id="btnAdicionarItem" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl">
+                <i class='bx bx-plus'></i> Adicionar ao Carrinho
+            </button>
+        </div>
+
+        <!-- LISTA DE ITENS -->
+        <h3 class="text-lg font-semibold text-gray-700 mb-2">Itens da Compra</h3>
+        <table class="w-full border-collapse mb-4">
+            <thead>
+            <tr class="border-b bg-gray-100 text-left">
+                <th class="py-2 px-3">Toner</th>
+                <th class="py-2 px-3">Qtd.</th>
+                <th class="py-2 px-3">Valor Unit.</th>
+                <th class="py-2 px-3">Subtotal</th>
+                <th class="py-2 px-3 text-center">Ação</th>
+            </tr>
+            </thead>
+            <tbody id="tbodyCarrinho" class="text-gray-700"></tbody>
+        </table>
+
+        <div class="flex justify-between items-center mb-4">
+            <span class="text-lg font-medium text-gray-700">Valor Total:</span>
+            <span id="totalCompra" class="text-2xl font-bold text-green-600">R$ 0,00</span>
+        </div>
+
+        <label class="block text-gray-600 font-medium">Número do Documento</label>
+        <input id="inputDocumento" type="text" class="w-full p-2 border rounded-xl mb-3">
+
+        <label class="block text-gray-600 font-medium">Condição de Pagamento</label>
+        <input id="inputCondPgto" type="text" class="w-full p-2 border rounded-xl mb-3">
+
+        <label class="block text-gray-600 font-medium">Observações</label>
+        <textarea id="inputObs" rows="3" class="w-full p-2 border rounded-xl mb-4"></textarea>
+
+        <button id="btnFinalizarCompra" class="w-full bg-green-600 hover:bg-green-700 text-white py-2 rounded-xl mb-2">
+            Salvar Compra
+        </button>
+
+        <button onclick="document.getElementById('modal-bg').classList.add('hidden')" class="w-full bg-gray-300 hover:bg-gray-400 text-gray-800 py-2 rounded-xl">
+            Cancelar
+        </button>
+    </div>
+</div>
+
+<script src="js/compras.js"></script>
+</body>
+</html>
