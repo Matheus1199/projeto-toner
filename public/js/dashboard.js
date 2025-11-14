@@ -49,19 +49,70 @@ async function carregarDashboard() {
 // =============================
 async function carregarLocacao() {
     try {
-        const resp = await fetch("/dashboard/locacao");
-        const dados = await resp.json();
+        const res = await fetch('/dashboard/locacao');
+        if (!res.ok) {
+            console.error('Erro ao buscar locação:', res.status);
+            return;
+        }
+        const dados = await res.json(); // array de { Cod_Produto, Modelo, Marca, Saldo_Disponivel }
 
-        const totalUnidades = dados.reduce((acc, item) => acc + item.Saldo, 0);
+        // total unidades e total de modelos
+        const totalUnidades = dados.reduce((s, it) => s + (Number(it.Saldo_Disponivel) || 0), 0);
         const totalModelos = dados.length;
 
-        document.getElementById("locacaoEstoqueValue").textContent = totalUnidades;
-        document.getElementById("locacaoModelos").textContent = `${totalModelos} modelos`;
+        // atualiza DOM (card)
+        document.getElementById('locacaoEstoqueValue').textContent = totalUnidades;
+        document.getElementById('locacaoModelos').textContent = `${totalModelos} modelo${totalModelos === 1 ? '' : 's'}`;
+
+        // opcional: criar/atualizar uma lista curta dentro do card para visibilidade rápida
+        // checa se já existe uma div para a listagem; se não, cria
+        let card = document.getElementById('cardLocacaoList');
+        if (!card) {
+            const container = document.createElement('div');
+            container.id = 'cardLocacaoList';
+            container.className = 'mt-3';
+            const parent = document.querySelector('#locacaoEstoqueValue').closest('.bg-white');
+            parent.appendChild(container);
+            card = container;
+        }
+
+        if (dados.length === 0) {
+            card.innerHTML = `<p class="text-sm text-gray-500">Nenhum toner de locação com saldo disponível.</p>`;
+        } else {
+            // mostra até 6 itens (para não poluir o card), com link para página de toners
+            const maxShow = 6;
+            card.innerHTML = `
+        <ul class="mt-2 space-y-2">
+          ${dados.slice(0, maxShow).map(it => `
+            <li class="flex justify-between items-center">
+              <div>
+                <div class="text-sm font-medium">${escapeHtml(it.Marca)} - ${escapeHtml(it.Modelo)}</div>
+                <div class="text-xs text-gray-400">${it.Cod_Produto ? `ID ${it.Cod_Produto}` : ''}</div>
+              </div>
+              <div class="text-sm font-semibold text-blue-600">${it.Saldo_Disponivel}</div>
+            </li>
+          `).join('')}
+        </ul>
+        ${dados.length > maxShow ? `<div class="text-xs text-gray-400 mt-2">e mais ${dados.length - maxShow}...</div>` : ''}
+      `;
+        }
 
     } catch (err) {
-        console.error("Erro ao buscar toners de locação:", err);
+        console.error("Erro ao carregar locação:", err);
     }
 }
+
+// helper para escapar texto (evita injeção)
+function escapeHtml(str) {
+    if (str === null || str === undefined) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+}
+
 
 
 // Executa ao carregar e a cada 30s
