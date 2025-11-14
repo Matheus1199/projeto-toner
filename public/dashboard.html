@@ -3,19 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Painel - TonerStock</title>
+    <title>Dashboard - TonerStock</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
 </head>
 
 <body class="bg-gray-50 flex min-h-screen">
 
+<!-- BOTÃO SAIR -->
 <button id="logout"
         class="fixed top-4 right-6 bg-red-600 text-white px-4 py-2 rounded-lg shadow hover:bg-red-700 transition">
     Sair
 </button>
 
-<!-- Sidebar -->
+<!-- SIDEBAR -->
 <aside class="w-64 bg-white shadow-md flex flex-col fixed h-full">
     <div class="flex items-center gap-2 px-6 py-4 border-b">
         <h1 class="text-xl font-bold text-gray-700">Sistema de toner</h1>
@@ -37,51 +38,56 @@
     </nav>
 </aside>
 
-<!-- Main content -->
+<!-- CONTEÚDO PRINCIPAL -->
 <main class="ml-64 p-6 w-full">
     <h2 class="text-3xl font-bold text-gray-700 mb-2">Dashboard</h2>
     <p class="text-gray-500 mb-6">Visão geral do seu estoque e movimentações</p>
 
-    <!-- Cards -->
+    <!-- CARDS SUPERIORES -->
     <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-6">
+
+        <!-- TOTAL EM ESTOQUE -->
         <div class="bg-white p-5 rounded-2xl shadow-sm border">
             <div class="flex items-center justify-between">
                 <div>
                     <h3 class="text-gray-500">Total em Estoque</h3>
-                    <p class="text-2xl font-bold text-gray-700">0</p>
-                    <span class="text-gray-400 text-sm">0 modelos</span>
+                    <p id="totalEstoqueValue" class="text-2xl font-bold text-gray-700">0</p>
+                    <span id="totalModelos" class="text-gray-400 text-sm">0 modelos</span>
                 </div>
                 <i class='bx bxs-box text-blue-500 text-3xl'></i>
             </div>
         </div>
 
+        <!-- VALOR EM ESTOQUE -->
         <div class="bg-white p-5 rounded-2xl shadow-sm border">
             <div class="flex items-center justify-between">
                 <div>
                     <h3 class="text-gray-500">Valor em Estoque</h3>
-                    <p class="text-2xl font-bold text-green-500">R$ 0.00</p>
+                    <p id="valorEstoqueValue" class="text-2xl font-bold text-green-500">R$ 0,00</p>
                     <span class="text-gray-400 text-sm">valor de custo</span>
                 </div>
                 <i class='bx bx-money text-green-500 text-3xl'></i>
             </div>
         </div>
 
+        <!-- VENDAS DO MÊS -->
         <div class="bg-white p-5 rounded-2xl shadow-sm border">
             <div class="flex items-center justify-between">
                 <div>
                     <h3 class="text-gray-500">Vendas do Mês</h3>
-                    <p class="text-2xl font-bold text-purple-500">R$ 0.00</p>
-                    <span class="text-gray-400 text-sm">0 vendas</span>
+                    <p id="vendasMesValue" class="text-2xl font-bold text-purple-500">R$ 0,00</p>
+                    <span id="qtdVendasMes" class="text-gray-400 text-sm">0 vendas</span>
                 </div>
                 <i class='bx bx-line-chart text-purple-500 text-3xl'></i>
             </div>
         </div>
 
+        <!-- ALERTAS DE ESTOQUE -->
         <div class="bg-white p-5 rounded-2xl shadow-sm border">
             <div class="flex items-center justify-between">
                 <div>
                     <h3 class="text-gray-500">Alertas de Estoque</h3>
-                    <p class="text-2xl font-bold text-orange-500">0</p>
+                    <p id="alertasEstoqueValue" class="text-2xl font-bold text-orange-500">0</p>
                     <span class="text-gray-400 text-sm">itens abaixo do mínimo</span>
                 </div>
                 <i class='bx bxs-error text-orange-500 text-3xl'></i>
@@ -89,12 +95,13 @@
         </div>
     </div>
 
-    <!-- Subcards -->
+    <!-- SUBCARDS -->
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+
         <div class="bg-white p-5 rounded-2xl shadow-sm border flex items-center justify-between">
             <div>
                 <h3 class="text-gray-500">Clientes</h3>
-                <p class="text-2xl font-bold text-gray-700" id="totalClientes">0</p>
+                <p id="totalClientes" class="text-2xl font-bold text-gray-700">0</p>
             </div>
             <i class='bx bxs-user text-blue-500 text-3xl'></i>
         </div>
@@ -102,7 +109,7 @@
         <div class="bg-white p-5 rounded-2xl shadow-sm border flex items-center justify-between">
             <div>
                 <h3 class="text-gray-500">Fornecedores</h3>
-                <p class="text-2xl font-bold text-gray-700" id="totalFornecedores">0</p>
+                <p id="totalFornecedores" class="text-2xl font-bold text-gray-700">0</p>
             </div>
             <i class='bx bxs-truck text-green-500 text-3xl'></i>
         </div>
@@ -110,15 +117,15 @@
         <div class="bg-white p-5 rounded-2xl shadow-sm border flex items-center justify-between">
             <div>
                 <h3 class="text-gray-500">Vendas Totais</h3>
-                <p class="text-2xl font-bold text-gray-700">0</p>
+                <p id="vendasTotaisValue" class="text-2xl font-bold text-gray-700">R$ 0,00</p>
             </div>
             <i class='bx bx-cart text-purple-500 text-3xl'></i>
         </div>
     </div>
 
-    <!-- Bottom section -->
+    <!-- SEÇÃO INFERIOR -->
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <!-- Alertas -->
+        <!-- ALERTAS DE ESTOQUE BAIXO -->
         <div class="bg-white p-6 rounded-2xl shadow-sm border">
             <h3 class="font-semibold text-gray-700 mb-4 flex items-center gap-2">
                 <i class='bx bxs-error text-orange-500 text-xl'></i> Alertas de Estoque Baixo
@@ -129,7 +136,7 @@
             </div>
         </div>
 
-        <!-- Vendas recentes -->
+        <!-- VENDAS RECENTES -->
         <div class="bg-white p-6 rounded-2xl shadow-sm border">
             <h3 class="font-semibold text-gray-700 mb-4 flex items-center gap-2">
                 <i class='bx bx-cart text-purple-500 text-xl'></i> Vendas Recentes
@@ -140,28 +147,9 @@
             </div>
         </div>
     </div>
-
 </main>
-<script>
-    async function carregarDashboard() {
-        try {
-            const res = await fetch("/dashboard");
-            const data = await res.json();
 
-            document.getElementById("totalClientes").textContent = data.totalClientes || 0;
-            document.getElementById("totalFornecedores").textContent = data.totalFornecedores || 0;
-
-        } catch (err) {
-            console.error("Erro ao carregar dashboard:", err);
-        }
-    }
-
-    carregarDashboard();
-
-    document.getElementById('logout').addEventListener('click', () => {
-        localStorage.removeItem('token');
-        window.location.href = '/';
-    });
-</script>
+<!-- SCRIPT -->
+<script src="js/dashboard.js"></script>
 </body>
 </html>

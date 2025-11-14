@@ -1,12 +1,12 @@
 // ==============================
-// compras.js - TonerStock
+// vendas.js - TonerStock
 // ==============================
 document.addEventListener("DOMContentLoaded", () => {
     let carrinho = [];
 
-    // === Abrir modal de nova compra ===
-    document.getElementById("btnNovaCompra").addEventListener("click", async () => {
-        await carregarFornecedores();
+    // === Abrir modal de nova venda ===
+    document.getElementById("btnNovaVenda").addEventListener("click", async () => {
+        await carregarClientes();
         await carregarToners();
 
         document.getElementById("modal-bg").classList.remove("hidden");
@@ -14,23 +14,23 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     // === Fechar modal ===
-    window.fecharModal = function() {
+    function fecharModal() {
         document.getElementById("modal-bg").classList.add("hidden");
         carrinho = [];
         atualizarCarrinho();
-    };
+    }
 
-    // === Buscar fornecedores ===
-    async function carregarFornecedores() {
-        const resp = await fetch("/fornecedores/listar");
-        const fornecedores = await resp.json();
+    // === Buscar clientes ===
+    async function carregarClientes() {
+        const resp = await fetch("/clientes");
+        const clientes = await resp.json();
 
-        const select = document.getElementById("selectFornecedor");
-        select.innerHTML = `<option value="">Selecione o fornecedor</option>`;
-        fornecedores.forEach(f => {
+        const select = document.getElementById("selectCliente");
+        select.innerHTML = `<option value="">Selecione o cliente</option>`;
+        clientes.forEach(c => {
             const opt = document.createElement("option");
-            opt.value = f.Id_Fornecedor;
-            opt.textContent = f.Nome;
+            opt.value = c.Id_cliente;
+            opt.textContent = c.Nome;
             select.appendChild(opt);
         });
     }
@@ -54,29 +54,29 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById("btnAdicionarItem").addEventListener("click", () => {
         const tonerSelect = document.getElementById("selectToner");
         const quantidade = parseInt(document.getElementById("inputQtd").value);
-        const valorUnitario = parseFloat(document.getElementById("inputValor").value);
+        const valorVenda = parseFloat(document.getElementById("inputValor").value);
 
-        // Validação simples e robusta
-        if (!tonerSelect.value || quantidade <= 0 || isNaN(valorUnitario) || valorUnitario <= 0) {
+        if (!tonerSelect.value || isNaN(quantidade) || quantidade <= 0 || isNaN(valorVenda) || valorVenda <= 0) {
             alert("Preencha todos os campos do item corretamente.");
             return;
         }
 
         const tonerId = parseInt(tonerSelect.value);
         const tonerNome = tonerSelect.options[tonerSelect.selectedIndex].text;
-        const subtotal = quantidade * valorUnitario;
+
+        const subtotal = quantidade * valorVenda;
 
         carrinho.push({
-            Cod_Produto: tonerId,
-            Nome_Produto: tonerNome,
+            Cod_Toner: tonerId,
+            Nome_Toner: tonerNome,
             Quantidade: quantidade,
-            ValorUnitario: valorUnitario,
+            Valor_Venda: valorVenda,
             Subtotal: subtotal
         });
 
         atualizarCarrinho();
 
-        // Limpa campos
+        // limpa campos
         document.getElementById("selectToner").value = "";
         document.getElementById("inputQtd").value = "";
         document.getElementById("inputValor").value = "";
@@ -92,12 +92,12 @@ document.addEventListener("DOMContentLoaded", () => {
         carrinho.forEach((item, index) => {
             const tr = document.createElement("tr");
             tr.innerHTML = `
-                <td class="py-2 px-3">${item.Nome_Produto}</td>
+                <td class="py-2 px-3">${item.Nome_Toner}</td>
                 <td class="py-2 px-3 text-center">${item.Quantidade}</td>
-                <td class="py-2 px-3 text-center">R$ ${item.ValorUnitario.toFixed(2)}</td>
+                <td class="py-2 px-3 text-center">R$ ${item.Valor_Venda.toFixed(2)}</td>
                 <td class="py-2 px-3 text-center font-semibold">R$ ${item.Subtotal.toFixed(2)}</td>
                 <td class="py-2 px-3 text-center">
-                    <button onclick="removerItem(${index})" class="text-red-500 hover:text-red-700">
+                    <button class="text-red-500 hover:text-red-700" data-index="${index}">
                         <i class='bx bx-trash'></i>
                     </button>
                 </td>
@@ -106,37 +106,45 @@ document.addEventListener("DOMContentLoaded", () => {
             total += item.Subtotal;
         });
 
-        document.getElementById("totalCompra").textContent = `R$ ${total.toFixed(2)}`;
+        document.getElementById("totalVenda").textContent = `R$ ${total.toFixed(2)}`;
+
+        // Adiciona eventos de remoção de item
+        document.querySelectorAll("#tbodyCarrinho button").forEach(btn => {
+            btn.addEventListener("click", (e) => {
+                const idx = e.currentTarget.getAttribute("data-index");
+                removerItem(idx);
+            });
+        });
     }
 
     // === Remover item do carrinho ===
-    window.removerItem = function(index) {
+    function removerItem(index) {
         carrinho.splice(index, 1);
         atualizarCarrinho();
-    };
+    }
 
-    // === Finalizar compra ===
-    document.getElementById("btnFinalizarCompra").addEventListener("click", async () => {
-        const Cod_Fornecedor = parseInt(document.getElementById("selectFornecedor").value);
-        const NDocumento = document.getElementById("inputDocumento").value;
+    // === Finalizar venda ===
+    document.getElementById("btnFinalizarVenda").addEventListener("click", async () => {
+        const Cod_Cliente = parseInt(document.getElementById("selectCliente").value);
+        const NDoc = document.getElementById("inputDocumento").value;
         const Cond_Pagamento = document.getElementById("inputCondPgto").value;
         const Obs = document.getElementById("inputObs").value;
 
-        if (!Cod_Fornecedor || !NDocumento || carrinho.length === 0) {
+        if (!Cod_Cliente || !NDoc || carrinho.length === 0) {
             alert("Preencha todos os campos obrigatórios e adicione ao menos um item.");
             return;
         }
 
         const dados = {
-            Cod_Fornecedor,
-            NDocumento,
+            Cod_Cliente,
+            NDoc,
             Cond_Pagamento,
             Obs,
-            carrinho  // ✅ Envia o carrinho completo para o backend
+            Itens: carrinho
         };
 
         try {
-            const resp = await fetch("/compras/finalizar", {
+            const resp = await fetch("/vendas/finalizar", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(dados)
@@ -145,11 +153,11 @@ document.addEventListener("DOMContentLoaded", () => {
             const data = await resp.json();
 
             if (resp.ok) {
-                alert("Compra salva com sucesso!");
+                alert("Venda salva com sucesso!");
                 fecharModal();
-                listarCompras();
+                listarVendas();
             } else {
-                alert(data.error || "Erro ao salvar compra.");
+                alert(data.error || "Erro ao salvar venda.");
             }
         } catch (err) {
             console.error(err);
@@ -157,28 +165,31 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     });
 
+    // === Listar últimas 10 vendas ===
+    async function listarVendas() {
+        try {
+            const resp = await fetch("/vendas/listar");
+            const vendas = await resp.json();
 
-    // === Carregar as últimas 10 compras ===
-    async function listarCompras() {
-        const resp = await fetch("/compras/listar");
-        const compras = await resp.json();
+            const tbody = document.getElementById("tabelaVendas");
+            tbody.innerHTML = "";
 
-        const tbody = document.getElementById("tabelaCompras");
-        tbody.innerHTML = "";
-
-        compras.forEach(c => {
-            const tr = document.createElement("tr");
-            tr.innerHTML = `
-                <td class="py-2 px-3">${c.Cod_Compra}</td>
-                <td class="py-2 px-3">${new Date(c.Data_Compra).toLocaleDateString()}</td>
-                <td class="py-2 px-3">${c.Nome_Fornecedor}</td>
-                <td class="py-2 px-3">R$ ${parseFloat(c.Valor_Total).toFixed(2)}</td>
-                <td class="py-2 px-3">${c.NDocumento}</td>
-            `;
-            tbody.appendChild(tr);
-        });
+            vendas.forEach(v => {
+                const tr = document.createElement("tr");
+                tr.innerHTML = `
+                    <td class="py-2 px-3">${v.Cod_Pedido}</td>
+                    <td class="py-2 px-3">${new Date(v.Data).toLocaleDateString()}</td>
+                    <td class="py-2 px-3">${v.Nome_Cliente}</td>
+                    <td class="py-2 px-3">R$ ${parseFloat(v.Valor_Total).toFixed(2)}</td>
+                    <td class="py-2 px-3">${v.NDoc}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        } catch (error) {
+            console.error("Erro ao listar vendas:", error);
+        }
     }
 
     // === Início ===
-    listarCompras();
+    listarVendas();
 });
