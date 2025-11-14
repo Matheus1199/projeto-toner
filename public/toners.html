@@ -5,12 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Toners - TonerStock</title>
 
-    <!-- Tailwind -->
     <script src="https://cdn.tailwindcss.com"></script>
-
-    <!-- Boxicons -->
     <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
-
 </head>
 
 <body class="bg-gray-50 flex min-h-screen">
@@ -23,31 +19,12 @@
 
     <nav class="flex-1 mt-4">
         <ul class="space-y-1">
-            <li>
-                <a href="dashboard.html"
-                   class="flex items-center px-6 py-3 text-gray-600 hover:bg-gray-100">
-                    <i class='bx bxs-dashboard text-xl mr-3'></i> Dashboard
-                </a>
-            </li>
-
-            <li>
-                <a href="toners.html"
-                   class="flex items-center px-6 py-3 text-blue-600 bg-blue-50 border-r-4 border-blue-600 font-medium">
-                    <i class='bx bxs-printer text-xl mr-3'></i> Toners
-                </a>
-            </li>
-
-            <li><a href="clientes.html" class="flex items-center px-6 py-3 text-gray-600 hover:bg-gray-100">
-                <i class='bx bxs-user text-xl mr-3'></i> Clientes</a></li>
-
-            <li><a href="fornecedores.html" class="flex items-center px-6 py-3 text-gray-600 hover:bg-gray-100">
-                <i class='bx bxs-truck text-xl mr-3'></i> Fornecedores</a></li>
-
-            <li><a href="vendas.html" class="flex items-center px-6 py-3 text-gray-600 hover:bg-gray-100">
-                <i class='bx bxs-cart text-xl mr-3'></i> Vendas</a></li>
-
-            <li><a href="compras.html" class="flex items-center px-6 py-3 text-gray-600 hover:bg-gray-100">
-                <i class='bx bxs-basket text-xl mr-3'></i> Compras</a></li>
+            <li><a href="dashboard.html" class="flex items-center px-6 py-3 text-gray-600 hover:bg-gray-100"><i class='bx bxs-dashboard text-xl mr-3'></i> Dashboard</a></li>
+            <li><a href="toners.html" class="flex items-center px-6 py-3 text-blue-600 bg-blue-50 border-r-4 border-blue-600 font-medium"><i class='bx bxs-printer text-xl mr-3'></i> Toners</a></li>
+            <li><a href="clientes.html" class="flex items-center px-6 py-3 text-gray-600 hover:bg-gray-100"><i class='bx bxs-user text-xl mr-3'></i> Clientes</a></li>
+            <li><a href="fornecedores.html" class="flex items-center px-6 py-3 text-gray-600 hover:bg-gray-100"><i class='bx bxs-truck text-xl mr-3'></i> Fornecedores</a></li>
+            <li><a href="vendas.html" class="flex items-center px-6 py-3 text-gray-600 hover:bg-gray-100"><i class='bx bxs-cart text-xl mr-3'></i> Vendas</a></li>
+            <li><a href="compras.html" class="flex items-center px-6 py-3 text-gray-600 hover:bg-gray-100"><i class='bx bxs-basket text-xl mr-3'></i> Compras</a></li>
         </ul>
     </nav>
 </aside>
@@ -56,9 +33,7 @@
 <main class="ml-64 p-6 w-full">
     <h1 class="text-3xl font-bold text-gray-700 mb-6">Toners</h1>
 
-    <!-- BOTÃO DE NOVO TONER -->
-    <button id="btnNovoToner"
-            class="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-xl shadow-sm mb-5">
+    <button id="btnNovoToner" class="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-xl shadow-sm mb-5">
         <i class='bx bx-plus text-xl'></i> Novo Toner
     </button>
 
@@ -66,93 +41,37 @@
         <h3 class="font-semibold text-lg">Pesquisar Toner</h3>
 
         <div class="flex gap-3">
-            <input id="pesquisaModelo"
-                   type="text"
-                   placeholder="Pesquisar por modelo..."
-                   class="border p-2 rounded w-56 focus:outline-none focus:ring-2 focus:ring-blue-400">
-
-            <input id="pesquisaMarca"
-                   type="text"
-                   placeholder="Pesquisar por marca..."
-                   class="border p-2 rounded w-56 focus:outline-none focus:ring-2 focus:ring-blue-400">
-
-            <input id="pesquisaTipo"
-                   type="text"
-                   placeholder="Pesquisar por tipo..."
-                   class="border p-2 rounded w-56 focus:outline-none focus:ring-2 focus:ring-blue-400">
+            <input id="pesquisaModelo" type="text" placeholder="Pesquisar por modelo..." class="border p-2 rounded w-56 focus:outline-none focus:ring-2 focus:ring-blue-400">
+            <input id="pesquisaMarca" type="text" placeholder="Pesquisar por marca..." class="border p-2 rounded w-56 focus:outline-none focus:ring-2 focus:ring-blue-400">
+            <input id="pesquisaTipo" type="text" placeholder="Pesquisar por tipo..." class="border p-2 rounded w-56 focus:outline-none focus:ring-2 focus:ring-blue-400">
         </div>
     </div>
 
-    <!-- RESULTADO DA PESQUISA -->
-    <div id="resultado" class="hidden bg-white p-6 rounded-2xl shadow-sm border">
-        <h2 class="text-2xl font-bold text-gray-700 mb-2" id="nomeToner"></h2>
-        <p class="text-gray-600 mb-1"><strong>Marca:</strong> <span id="marcaToner"></span></p>
-        <p class="text-gray-600 mb-4"><strong>Tipo:</strong> <span id="tipoToner"></span></p>
-
-        <div class="bg-blue-50 border-l-4 border-blue-600 p-4 rounded-lg mb-6">
-            <p class="text-blue-800 font-medium">
-                <i class='bx bxs-box mr-2'></i>
-                Em estoque: <span id="estoqueToner" class="font-bold"></span> unidades
-            </p>
-        </div>
-
-        <h3 class="text-lg font-semibold text-gray-700 mb-2">Últimas 5 vendas</h3>
-        <table class="w-full border-collapse">
-            <thead>
-            <tr class="border-b">
-                <th class="py-2 text-gray-500">Data</th>
-                <th class="py-2 text-gray-500">Cliente</th>
-                <th class="py-2 text-gray-500">Quantidade</th>
-            </tr>
-            </thead>
-            <tbody id="tabelaVendas"></tbody>
-        </table>
-    </div>
+    <!-- RESULTADO -->
+    <div id="resultado" class="hidden"></div>
 </main>
 
 <!-- MODAL -->
-<div id="modal-bg"
-     class="hidden fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
-
+<div id="modal-bg" class="hidden fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
     <div class="bg-white w-96 p-6 rounded-2xl shadow-lg">
         <h2 id="modalTitle" class="text-xl font-bold text-gray-700 mb-4">Novo Toner</h2>
 
         <input type="hidden" id="codProduto">
 
-        <label class="block text-gray-600 font-medium">Modelo</label>
+        <label class="block text-gray-600">Modelo</label>
         <input id="modelo" type="text" class="w-full p-2 border rounded-xl mb-3">
 
-        <label class="block text-gray-600 font-medium">Marca</label>
+        <label class="block text-gray-600">Marca</label>
         <input id="marca" type="text" class="w-full p-2 border rounded-xl mb-3">
 
-        <label class="block text-gray-600 font-medium">Tipo</label>
+        <label class="block text-gray-600">Tipo</label>
         <input id="tipo" type="text" class="w-full p-2 border rounded-xl mb-4">
 
-        <button id="salvarToner"
-                class="w-full bg-green-600 hover:bg-green-700 text-white py-2 rounded-xl mb-2">
-            Salvar
-        </button>
-
-        <button onclick="fecharModal()"
-                class="w-full bg-gray-300 hover:bg-gray-400 text-gray-800 py-2 rounded-xl">
-            Cancelar
-        </button>
+        <button id="salvarToner" class="w-full bg-green-600 hover:bg-green-700 text-white py-2 rounded-xl mb-2">Salvar</button>
+        <button onclick="fecharModal()" class="w-full bg-gray-300 hover:bg-gray-400 text-gray-800 py-2 rounded-xl">Cancelar</button>
     </div>
 </div>
 
 <script src="js/toners.js"></script>
-
-<script>
-    // Abrir modal
-    document.getElementById("btnNovoToner").onclick = () => {
-        document.getElementById("modal-bg").classList.remove("hidden");
-    };
-
-    // Fechar modal
-    function fecharModal() {
-        document.getElementById("modal-bg").classList.add("hidden");
-    }
-</script>
-
 </body>
 </html>

@@ -58,6 +58,104 @@ app.post('/toners', async (req, res) => {
     }
 });
 
+// ✅ PESQUISAR TONER (Modelo, Marca ou Tipo)
+app.get('/toners/pesquisar', async (req, res) => {
+    const { termo, tipo } = req.query;
+
+    if (!termo || termo.trim() === "") {
+        return res.status(400).json({ error: "Informe um termo para pesquisa." });
+    }
+
+    if (!["modelo", "marca", "tipo"].includes(tipo)) {
+        return res.status(400).json({ error: "Tipo de pesquisa inválido." });
+    }
+
+    try {
+
+        // ========================================================
+        // 🔍 PESQUISA POR MODELO — RETORNA DETALHES COMPLETOS
+        // ========================================================
+        if (tipo === "modelo") {
+
+            const result = await pool.request()
+                .input("termo", sql.VarChar(100), `%${termo}%`)
+                .query(`
+                    SELECT TOP 1
+                        T.Cod_Produto,
+                        T.Modelo,
+                        T.Marca,
+                        T.Tipo,
+                        ISNULL(SUM(CI.Saldo), 0) AS Estoque
+                    FROM Tbl_Toner T
+                    LEFT JOIN Tbl_ComprasItens CI ON T.Cod_Produto = CI.Cod_Toner
+                    WHERE T.Modelo LIKE @termo
+                    GROUP BY T.Cod_Produto, T.Modelo, T.Marca, T.Tipo
+                `);
+
+            if (result.recordset.length === 0)
+                return res.status(404).json({ error: "Toner não encontrado." });
+
+            const toner = result.recordset[0];
+
+            // 🔄 Últimas 5 vendas desse toner
+            const vendas = await pool.request()
+                .input("cod", sql.Int, toner.Cod_Produto)
+                .query(`
+                    SELECT TOP 5
+                        P.Data AS Data_Venda,
+                        C.Nome AS Cliente,
+                        I.Quantidade
+                    FROM Tbl_PedidosItens I
+                    JOIN Tbl_Pedidos P ON I.Cod_Pedido = P.Cod_Pedido
+                    JOIN Tbl_Clientes C ON I.Cod_Cliente = C.Id_Cliente
+                    WHERE I.Cod_Toner = @cod
+                    ORDER BY P.Data DESC
+                `);
+
+            return res.json({
+                tipo: "modelo",
+                toner: {
+                    modelo: toner.Modelo,
+                    marca: toner.Marca,
+                    tipo: toner.Tipo,
+                    estoque: toner.Estoque
+                },
+                vendas: vendas.recordset
+            });
+        }
+
+        // ========================================================
+        // 🔍 PESQUISA POR MARCA / TIPO — RETORNA LISTA
+        // ========================================================
+        const campo = tipo === "marca" ? "T.Marca" : "T.Tipo";
+
+        const result = await pool.request()
+            .input("termo", sql.VarChar(100), `%${termo}%`)
+            .query(`
+                SELECT 
+                    T.Cod_Produto,
+                    T.Modelo,
+                    T.Marca,
+                    T.Tipo,
+                    ISNULL(SUM(CI.Saldo), 0) AS Estoque
+                FROM Tbl_Toner T
+                LEFT JOIN Tbl_ComprasItens CI ON T.Cod_Produto = CI.Cod_Toner
+                WHERE ${campo} LIKE @termo
+                GROUP BY T.Cod_Produto, T.Modelo, T.Marca, T.Tipo
+                ORDER BY T.Modelo
+            `);
+
+        return res.json({
+            tipo,
+            toners: result.recordset
+        });
+
+    } catch (error) {
+        console.error("Erro ao pesquisar toner:", error);
+        res.status(500).json({ error: "Erro ao pesquisar toner." });
+    }
+});
+
 app.get("/toners/listar", async (req, res) => {
     try {
         const result = await pool.request().query(`
@@ -156,12 +254,12 @@ app.get('/toners/pesquisar', async (req, res) => {
 
             const toner = result.recordset[0];
 
-            /*// 🔄 Busca últimas 5 vendas desse modelo
+            /*/ 🔄 Busca últimas 5 vendas desse modelo
             const vendas = await pool.request()
                 .input("modelo", sql.VarChar(100), toner.Modelo)
                 .query(`
                     SELECT TOP 5 Cliente, Data_Venda, Quantidade
-                    FROM Tbl_Vendas
+                    FROM Tbl_Compras
                     WHERE Modelo = @modelo
                     ORDER BY Data_Venda DESC
                 `);*/
@@ -604,7 +702,7 @@ app.post("/vendas/finalizar", async (req, res) => {
                 .input("Cod_Toner", sql.Int, item.Cod_Toner)
                 .query(`
                     SELECT TOP 100 Id_ItemCompra, Valor_Compra, Saldo
-                    FROM Tbl_CompraItens
+                    FROM Tbl_ComprasItens
                     WHERE Cod_Toner = @Cod_Toner AND Saldo > 0
                     ORDER BY Id_ItemCompra ASC
                 `);
@@ -646,7 +744,7 @@ app.post("/vendas/finalizar", async (req, res) => {
                     .input("Id_ItemCompra", sql.Int, lote.Id_ItemCompra)
                     .input("NovaQtd", sql.Int, lote.Saldo - usar)
                     .query(`
-                        UPDATE Tbl_CompraItens SET Saldo = @NovaQtd WHERE Id_ItemCompra = @Id_ItemCompra
+                        UPDATE Tbl_ComprasItens SET Saldo = @NovaQtd WHERE Id_ItemCompra = @Id_ItemCompra
                     `);
 
                 qtdRestante -= usar;
@@ -682,6 +780,74 @@ app.post("/vendas/finalizar", async (req, res) => {
         res.status(500).json({ error: err.message || "Erro ao finalizar venda." });
     }
 });
+
+// === LISTAR ESTOQUE DISPONÍVEL PARA VENDA ===
+app.get("/estoque/disponivel", async (req, res) => {
+    try {
+        const result = await pool.request().query(`
+            SELECT 
+                CI.Id_ItemCompra,
+                T.Cod_Produto,
+                T.Marca,
+                T.Modelo,
+                T.Tipo,
+                F.Nome AS Fornecedor,
+                CI.Valor_Compra,
+                CI.Saldo,
+                C.Cod_Compra,
+                C.NDocumento
+            FROM Tbl_ComprasItens CI
+            INNER JOIN Tbl_Toner T ON CI.Cod_Toner = T.Cod_Produto
+            LEFT JOIN Tbl_Compras C ON CI.Cod_Compra = C.Cod_Compra
+            LEFT JOIN Tbl_Fornecedores F ON C.Cod_Fornecedor = F.Id_Fornecedor
+            WHERE CI.Saldo > 0
+            ORDER BY T.Marca, T.Modelo
+        `);
+
+        res.json(result.recordset);
+    } catch (error) {
+        console.error("Erro ao buscar estoque disponível:", error);
+        res.status(500).json({ error: "Erro ao buscar estoque disponível." });
+    }
+});
+
+app.get("/estoque/buscar", async (req, res) => {
+    const { termo } = req.query;
+
+    if (!termo || termo.trim() === "")
+        return res.status(400).json({ error: "Informe um modelo para pesquisar." });
+
+    try {
+        const result = await pool.request()
+            .input("termo", sql.VarChar(100), `%${termo}%`)
+            .query(`
+                SELECT 
+                    CI.Id_ItemCompra,
+                    CI.Cod_Toner,
+                    CI.Saldo,
+                    CI.Valor_Compra,
+                    T.Modelo,
+                    T.Marca,
+                    T.Tipo,
+                    C.Cod_Compra,
+                    F.Nome AS Fornecedor
+                FROM Tbl_ComprasItens CI
+                JOIN Tbl_Toner T ON CI.Cod_Toner = T.Cod_Produto
+                JOIN Tbl_Compras C ON CI.Cod_Compra = C.Cod_Compra
+                JOIN Tbl_Fornecedores F ON C.Cod_Fornecedor = F.Id_Fornecedor
+                WHERE T.Modelo LIKE @termo AND CI.Saldo > 0
+                ORDER BY T.Modelo ASC, CI.Id_ItemCompra ASC
+            `);
+
+        res.json(result.recordset);
+
+    } catch (err) {
+        console.error("Erro ao buscar estoque:", err);
+        res.status(500).json({ error: "Erro ao buscar estoque." });
+    }
+});
+
+
 
 // ✅ SERVIDOR
 const PORT = 3000;
