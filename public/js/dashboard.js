@@ -44,7 +44,28 @@ async function carregarDashboard() {
     }
 }
 
+// =============================
+// 🔵 Toners de Locação em Estoque
+// =============================
+async function carregarLocacao() {
+    try {
+        const resp = await fetch("/dashboard/locacao");
+        const dados = await resp.json();
+
+        const totalUnidades = dados.reduce((acc, item) => acc + item.Saldo, 0);
+        const totalModelos = dados.length;
+
+        document.getElementById("locacaoEstoqueValue").textContent = totalUnidades;
+        document.getElementById("locacaoModelos").textContent = `${totalModelos} modelos`;
+
+    } catch (err) {
+        console.error("Erro ao buscar toners de locação:", err);
+    }
+}
+
+
 // Executa ao carregar e a cada 30s
+carregarLocacao();
 carregarDashboard();
 setInterval(carregarDashboard, 30000);
 

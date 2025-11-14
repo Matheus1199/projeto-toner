@@ -1,93 +1,109 @@
+// ==============================
+// clientes.js - TonerStock
+// ==============================
 document.addEventListener("DOMContentLoaded", () => {
-    const inputPesquisa = document.getElementById("pesquisaCliente");
-    const resultado = document.getElementById("resultado");
-    const tbody = document.getElementById("tabelaCompras");
-    let timeout;
 
-    // === PESQUISAR CLIENTE ===
+    const inputPesquisa = document.getElementById("pesquisaCliente");
+    const resultadoDiv = document.getElementById("resultado");
+    const tabelaCompras = document.getElementById("tabelaCompras");
+
+    let timeout = null;
+
+    // Evento de pesquisa
     inputPesquisa.addEventListener("input", () => {
         clearTimeout(timeout);
-        const termo = inputPesquisa.value.trim();
-        if (!termo) {
-            resultado.classList.add("hidden");
+        timeout = setTimeout(() => buscarCliente(inputPesquisa.value), 400);
+    });
+
+    // ============================
+    // 🔍 Buscar Cliente
+    // ============================
+    async function buscarCliente(nome) {
+
+        if (!nome.trim()) {
+            resultadoDiv.classList.add("hidden");
+            tabelaCompras.innerHTML = "";
             return;
         }
 
-        timeout = setTimeout(() => buscarCliente(termo), 500);
-    });
-
-    async function buscarCliente(nome) {
         try {
             const res = await fetch(`/clientes/pesquisar?nome=${encodeURIComponent(nome)}`);
             const data = await res.json();
 
-            if (!data || !data.cliente) {
-                resultado.classList.add("hidden");
+            if (data.error) {
+                resultadoDiv.classList.remove("hidden");
+                resultadoDiv.innerHTML = `<p class="text-red-600">${data.error}</p>`;
                 return;
             }
 
-            resultado.classList.remove("hidden");
-            document.getElementById("nomeCliente").textContent = data.cliente.Nome;
-            document.getElementById("statusCliente").textContent = data.cliente.Ativo ? "Ativo" : "Inativo";
+            const cliente = data.cliente;
+            const compras = data.compras;
 
-            // === Exibe o nome correspondente do canal de aquisição ===
-            const canalNome = {
+            resultadoDiv.classList.remove("hidden");
+
+            // Preenche informações do cliente
+            document.getElementById("nomeCliente").textContent = cliente.Nome;
+            document.getElementById("statusCliente").textContent = cliente.Ativo ? "Ativo" : "Inativo";
+
+            // Canal de aquisição
+            const canais = {
                 1: "Barsotti",
                 6: "Whatsapp",
                 7: "Google"
-            }[data.cliente.Id_vendedor] || "Desconhecido";
+            };
 
-            document.getElementById("vendedorCliente").textContent = canalNome;
+            document.getElementById("vendedorCliente").textContent =
+                canais[cliente.Id_vendedor] || "Desconhecido";
 
-            tbody.innerHTML = "";
+            // Limpa tabela antes de preencher
+            tabelaCompras.innerHTML = "";
+
+            // Preencher as últimas 5 compras
+            for (const compra of compras) {
+                const itens = await buscarItensPedido(compra.Cod_Pedido);
+
+                // Cabeçalho da compra
+                const tr = document.createElement("tr");
+                tr.innerHTML = `
+                    <td class="py-3 border-b font-medium text-center">${new Date(compra.Data).toLocaleDateString()}</td>
+                    <td class="py-3 border-b font-medium text-center">#${compra.Cod_Pedido}</td>
+                    <td class="py-3 border-b font-medium text-center">${compra.QuantidadeTotal}</td>
+                    <td class="py-3 border-b font-medium text-green-700 text-center">R$ ${compra.Valor_Total.toFixed(2)}</td>
+                `;
+                tabelaCompras.appendChild(tr);
+
+                // Itens do pedido
+                itens.forEach(item => {
+                    const trItem = document.createElement("tr");
+                    trItem.innerHTML = `
+                        <td class="py-2 pl-6 text-gray-600 text-center">↳ ${item.Marca} - ${item.Modelo} (${item.Tipo})</td>
+                        <td class="py-2 text-gray-600 text-center">Qtd: ${item.Quantidade}</td>
+                        <td></td>
+                        <td></td>
+                    `;
+                    tabelaCompras.appendChild(trItem);
+                });
+
+            }
+
         } catch (err) {
-            console.error("Erro na busca:", err);
+            console.error("Erro ao buscar cliente:", err);
         }
     }
 
-    // === MODAL ===
-    document.getElementById("btnNovoCliente").onclick = () => {
-        document.getElementById("modalTitle").innerText = "Novo Cliente";
-        document.getElementById("idCliente").value = "";
-        document.getElementById("nome").value = "";
-        document.getElementById("ativo").checked = true;
+    // ============================
+    // 📦 Buscar itens de um pedido
+    // ============================
+    async function buscarItensPedido(codPedido) {
+        try {
+            const res = await fetch(`/pedidos/${codPedido}/itens`);
+            if (!res.ok) return [];
 
-        // === Atualiza o seletor de canal ===
-        const select = document.getElementById("idVendedor");
-        select.innerHTML = `
-            <option value="1">Barsotti</option>
-            <option value="6">Whatsapp</option>
-            <option value="7">Google</option>
-        `;
-        select.value = "1";
+            return await res.json();
+        } catch (err) {
+            console.error("Erro ao buscar itens:", err);
+            return [];
+        }
+    }
 
-        document.getElementById("modal-bg").classList.remove("hidden");
-    };
-
-    window.fecharModal = function () {
-        document.getElementById("modal-bg").classList.add("hidden");
-    };
-
-    // === SALVAR CLIENTE ===
-    document.getElementById("salvarCliente").onclick = () => {
-        const id = document.getElementById("idCliente").value;
-        const select = document.getElementById("idVendedor");
-
-        const data = {
-            nome: document.getElementById("nome").value,
-            ativo: document.getElementById("ativo").checked ? 1 : 0,
-            id_vendedor: parseInt(select.value) // envia o número correto (1, 6 ou 7)
-        };
-
-        const url = id ? `/clientes/${id}` : "/clientes";
-        const method = id ? "PUT" : "POST";
-
-        fetch(url, {
-            method,
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(data)
-        }).then(() => {
-            fecharModal();
-        });
-    };
 });

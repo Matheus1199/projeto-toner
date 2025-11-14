@@ -88,35 +88,37 @@ document.addEventListener("DOMContentLoaded", () => {
                     <h2 class="text-xl font-bold">${data.toner.modelo}</h2>
                     <p><strong>Marca:</strong> ${data.toner.marca}</p>
                     <p><strong>Tipo:</strong> ${data.toner.tipo}</p>
-
+            
                     <div class="mt-4 p-4 bg-blue-50 border-l-4 border-blue-600 rounded">
                         <p class="font-semibold text-blue-800">
                             <i class='bx bxs-box mr-2'></i>
                             Em estoque: ${data.toner.estoque} unidades
                         </p>
                     </div>
-
+            
                     <h3 class="mt-6 font-semibold text-lg">Últimas 5 vendas</h3>
                     <table class="w-full mt-2 border">
                         <thead>
-                        <tr class="bg-gray-100">
-                            <th class="p-2">Data</th>
-                            <th class="p-2">Cliente</th>
-                            <th class="p-2">Qtd</th>
-                        </tr>
+                            <tr class="bg-gray-100">
+                                <th class="p-2">Data</th>
+                                <th class="p-2">Cliente</th>
+                                <th class="p-2">Qtd</th>
+                                <th class="p-2">Valor</th>
+                            </tr>
                         </thead>
                         <tbody>
-                        ${
-                data.vendas.length > 0
-                    ? data.vendas.map(v => `
-                            <tr>
-                                <td class="p-2">${new Date(v.Data_Venda).toLocaleDateString()}</td>
-                                <td class="p-2">${v.Cliente}</td>
-                                <td class="p-2">${v.Quantidade}</td>
-                            </tr>
-                        `).join("")
-                    : `<tr><td colspan="3" class="p-2 text-gray-500">Nenhuma venda encontrada.</td></tr>`
-            }
+                            ${
+                            data.vendas.length > 0
+                                ? data.vendas.map(v => `
+                                        <tr>
+                                            <td class="p-2 text-center">${new Date(v.Data_Venda).toLocaleDateString()}</td>
+                                            <td class="p-2 text-center">${v.Cliente}</td>
+                                            <td class="p-2 text-center">${v.Quantidade}</td>
+                                            <td class="p-2 text-center">R$ ${parseFloat(v.Valor_Venda).toFixed(2)}</td>
+                                        </tr>
+                                    `).join("")
+                                : `<tr><td colspan="4" class="p-2 text-gray-500">Nenhuma venda encontrada.</td></tr>`
+                        }
                         </tbody>
                     </table>
                 </div>

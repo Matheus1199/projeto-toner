@@ -102,12 +102,13 @@ app.get('/toners/pesquisar', async (req, res) => {
                 .input("cod", sql.Int, toner.Cod_Produto)
                 .query(`
                     SELECT TOP 5
-                        P.Data AS Data_Venda,
+            P.Data AS Data_Venda,
                         C.Nome AS Cliente,
-                        I.Quantidade
+                           I.Quantidade,
+                           I.Valor_Venda
                     FROM Tbl_PedidosItens I
-                    JOIN Tbl_Pedidos P ON I.Cod_Pedido = P.Cod_Pedido
-                    JOIN Tbl_Clientes C ON I.Cod_Cliente = C.Id_Cliente
+                             JOIN Tbl_Pedidos P ON I.Cod_Pedido = P.Cod_Pedido
+                             JOIN Tbl_Clientes C ON I.Cod_Cliente = C.Id_Cliente
                     WHERE I.Cod_Toner = @cod
                     ORDER BY P.Data DESC
                 `);
@@ -338,10 +339,20 @@ app.post('/clientes', async (req, res) => {
 
 app.get('/clientes/pesquisar', async (req, res) => {
     const { nome } = req.query;
+
     try {
+        // 🔍 Busca cliente
         const clienteResult = await pool.request()
             .input("nome", sql.VarChar, `%${nome}%`)
-            .query("SELECT TOP 1 Id_cliente, Nome, Ativo, Id_vendedor FROM Tbl_Clientes WHERE Nome LIKE @nome");
+            .query(`
+                SELECT TOP 1 
+                    Id_cliente,
+                    Nome,
+                    Ativo,
+                    Id_vendedor
+                FROM Tbl_Clientes
+                WHERE Nome LIKE @nome
+            `);
 
         if (clienteResult.recordset.length === 0) {
             return res.status(404).json({ error: "Cliente não encontrado" });
@@ -349,20 +360,68 @@ app.get('/clientes/pesquisar', async (req, res) => {
 
         const cliente = clienteResult.recordset[0];
 
-        /*const comprasResult = await pool.request()
+        // 🔍 Busca as últimas 5 vendas desse cliente
+        const vendasResult = await pool.request()
             .input("id", sql.Int, cliente.Id_cliente)
             .query(`
-                SELECT TOP 5 c.Data, t.Modelo AS Produto, c.Quantidade
-                FROM Tbl_Compra c
-                JOIN Tbl_Toner t ON c.Id_toner = t.Cod_Produto
-                WHERE c.Id_cliente = @id
-                ORDER BY c.Data DESC
-            `); */
+                SELECT TOP 5
+                    P.Cod_Pedido,
+                    P.Data,
+                    P.Valor_Total,
+                    P.NDoc,
+                    (
+                        SELECT SUM(Quantidade) 
+                        FROM Tbl_PedidosItens I 
+                        WHERE I.Cod_Pedido = P.Cod_Pedido
+                    ) AS QuantidadeTotal
+                FROM Tbl_Pedidos P
+                WHERE P.Cod_Cliente = @id
+                ORDER BY P.Data DESC
+            `);
 
-        res.json({ cliente, compras: [] });
+        res.json({
+            cliente,
+            compras: vendasResult.recordset
+        });
+
     } catch (error) {
         console.error("Erro ao pesquisar cliente:", error);
         res.status(500).json({ error: "Erro ao pesquisar cliente" });
+    }
+});
+
+// ===============================================
+// 📌 Buscar itens de um pedido específico
+// GET /pedidos/:id/itens
+// ===============================================
+app.get("/pedidos/:id/itens", async (req, res) => {
+    const { id } = req.params;
+
+    try {
+        const result = await pool.request()
+            .input("id", sql.Int, id)
+            .query(`
+                SELECT 
+                    I.Cod_Pedido,
+                    I.Quantidade,
+                    I.Valor_Venda,
+                    T.Modelo,
+                    T.Marca,
+                    T.Tipo
+                FROM Tbl_PedidosItens I
+                INNER JOIN Tbl_Toner T ON T.Cod_Produto = I.Cod_Toner
+                WHERE I.Cod_Pedido = @id
+            `);
+
+        if (result.recordset.length === 0) {
+            return res.status(404).json({ error: "Nenhum item encontrado para este pedido." });
+        }
+
+        res.json(result.recordset);
+
+    } catch (error) {
+        console.error("Erro ao buscar itens do pedido:", error);
+        res.status(500).json({ error: "Erro ao buscar itens do pedido." });
     }
 });
 
@@ -561,6 +620,47 @@ app.get("/dashboard", async (req, res) => {
         res.status(500).send("Erro ao buscar dados do dashboard");
     }
 });
+
+app.get('/dashboard/locacao', async (req, res) => {
+    try {
+        const q = `
+            WITH ClientesLocacao AS (
+                SELECT Id_cliente
+                FROM Tbl_Clientes
+                WHERE Tipo = 4
+            ),
+                 TonersUsados AS (
+                     SELECT DISTINCT PI.Cod_Toner
+                     FROM Tbl_PedidosItens PI
+                              JOIN Tbl_Pedidos P ON PI.Cod_Pedido = P.Cod_Pedido
+                     WHERE P.Cod_Cliente IN (SELECT Id_cliente FROM ClientesLocacao)
+                 ),
+                 EstoquePorToner AS (
+                     SELECT Cod_Toner, SUM(Saldo) AS Saldo
+                     FROM Tbl_ComprasItens
+                     GROUP BY Cod_Toner
+                 )
+            SELECT
+                T.Cod_Produto,
+                T.Modelo,
+                T.Marca,
+                ISNULL(E.Saldo, 0) AS Saldo_Disponivel
+            FROM TonersUsados U
+                     JOIN Tbl_Toner T ON T.Cod_Produto = U.Cod_Toner
+                     LEFT JOIN EstoquePorToner E ON E.Cod_Toner = T.Cod_Produto
+            WHERE E.Saldo > 0
+            ORDER BY ISNULL(E.Saldo,0) DESC;
+
+        `;
+        const result = await pool.request().query(q);
+        res.json(result.recordset);
+    } catch (err) {
+        console.error("Erro /dashboard/locacao:", err);
+        res.status(500).json({ error: "Erro ao buscar toners de locação." });
+    }
+});
+;
+
 
 // Retorna 10 últimas compras (com nome do fornecedor)
 app.get("/compras/listar", async (req, res) => {
