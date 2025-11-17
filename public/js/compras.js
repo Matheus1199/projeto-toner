@@ -1,6 +1,9 @@
 // ==============================
 // compras.js - TonerStock
 // ==============================
+
+let compraRecemCriada = null;
+
 document.addEventListener("DOMContentLoaded", () => {
 
     let carrinho = [];
@@ -26,6 +29,22 @@ document.addEventListener("DOMContentLoaded", () => {
         carrinho = [];
         atualizarCarrinho();
     };
+
+    function abrirModalLancamento(compra) {
+        const div = document.getElementById("infoCompraLanc");
+
+        div.innerHTML = `
+        <p><strong>Código da Compra:</strong> ${compra.Cod_Compra}</p>
+        <p><strong>Data:</strong> ${new Date(compra.Data_Compra).toLocaleDateString()}</p>
+        <p><strong>Fornecedor:</strong> ${compra.Nome_Fornecedor}</p>
+        <p><strong>Documento:</strong> ${compra.NDocumento}</p>
+        <p><strong>Valor Total:</strong> R$ ${parseFloat(compra.Valor_Total).toFixed(2)}</p>
+        <p><strong>Condição de Pgto:</strong> ${compra.Cond_Pagamento}</p>
+    `;
+
+        document.getElementById("modal-lanc").classList.remove("hidden");
+    }
+
 
     // === Buscar fornecedores ===
     async function carregarFornecedores() {
@@ -248,8 +267,12 @@ document.addEventListener("DOMContentLoaded", () => {
             const data = await resp.json();
 
             if (resp.ok) {
+                compraRecemCriada = data; // <- recebe Cod_Compra e outros retornos do backend
+
                 alert("Compra salva com sucesso!");
+
                 fecharModal();
+                abrirModalLancamento(data);
                 listarCompras();
             } else {
                 alert(data.error || "Erro ao salvar compra.");
@@ -286,4 +309,39 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // === Início ===
     listarCompras();
+});
+
+document.getElementById("btnSalvarLancamento").addEventListener("click", async () => {
+
+    if (!compraRecemCriada) {
+        alert("Erro: nenhuma compra encontrada para lançamento!");
+        return;
+    }
+
+    const dados = {
+        Id_Operacao: compraRecemCriada.Cod_Compra,
+        Data_Vencimento: document.getElementById("lancVencimento").value,
+        Valor: parseFloat(document.getElementById("lancValor").value),
+        EAN: document.getElementById("lancEAN").value,
+        Obs: document.getElementById("lancObs").value,
+        Tipo: 1, // 1 = pagar
+        Operacao: 1, // 1 = compra
+        Conta: 1,
+        Baixa: 0
+    };
+
+    const resp = await fetch("/pagrec/lancar", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(dados)
+    });
+
+    const r = await resp.json();
+
+    if (resp.ok) {
+        alert("Título lançado com sucesso!");
+        document.getElementById("modal-lanc").classList.add("hidden");
+    } else {
+        alert(r.error || "Erro ao lançar título.");
+    }
 });
