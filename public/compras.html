@@ -99,13 +99,28 @@
         <!-- ADIÇÃO DE TONERS -->
         <div class="border-t border-b py-4 mb-4">
             <h3 class="text-lg font-semibold text-gray-700 mb-3">Adicionar Toner</h3>
+
             <div class="grid grid-cols-4 gap-3 mb-3">
-                <select id="selectToner" class="p-2 border rounded-xl col-span-2">
-                    <option value="">Selecione o toner</option>
-                </select>
+
+                <!-- CAMPO DE PESQUISA DO TONER -->
+                <div class="relative col-span-2">
+                    <input id="inputPesquisaToner"
+                           type="text"
+                           placeholder="Pesquisar toner..."
+                           class="w-full p-2 border rounded-xl"
+                           autocomplete="off">
+
+                    <div id="listaSugestoesToner"
+                         class="absolute w-full bg-white border rounded-xl shadow-lg mt-1 hidden max-h-40 overflow-y-auto z-50">
+                    </div>
+
+                    <input type="hidden" id="selectToner">
+                </div>
+
                 <input id="inputQtd" type="number" min="1" value="1" class="p-2 border rounded-xl" placeholder="Qtd.">
                 <input id="inputValor" type="number" min="0" step="0.01" class="p-2 border rounded-xl" placeholder="Valor Unitário">
             </div>
+
             <button id="btnAdicionarItem" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl">
                 <i class='bx bx-plus'></i> Adicionar ao Carrinho
             </button>

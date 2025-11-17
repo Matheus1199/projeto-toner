@@ -2,7 +2,14 @@
 // compras.js - TonerStock
 // ==============================
 document.addEventListener("DOMContentLoaded", () => {
+
     let carrinho = [];
+    let listaToners = [];
+    let indiceSelecionado = -1;
+
+    const inputPesquisa = document.getElementById("inputPesquisaToner");
+    const listaSugestoes = document.getElementById("listaSugestoesToner");
+    const inputTonerHidden = document.getElementById("selectToner");
 
     // === Abrir modal de nova compra ===
     document.getElementById("btnNovaCompra").addEventListener("click", async () => {
@@ -38,32 +45,123 @@ document.addEventListener("DOMContentLoaded", () => {
     // === Buscar toners ===
     async function carregarToners() {
         const resp = await fetch("/toners/listar");
-        const toners = await resp.json();
+        listaToners = await resp.json();
 
-        const select = document.getElementById("selectToner");
-        select.innerHTML = `<option value="">Selecione o toner</option>`;
-        toners.forEach(t => {
-            const opt = document.createElement("option");
-            opt.value = t.Cod_Produto;
-            opt.textContent = `${t.Marca} - ${t.Modelo} (${t.Tipo})`;
-            select.appendChild(opt);
+        inputPesquisa.value = "";
+        inputTonerHidden.value = "";
+    }
+
+    // ============================================================
+    // AUTOCOMPLETE AVANÇADO DO TONER
+    // ============================================================
+
+    function atualizarSugestoes(texto) {
+        listaSugestoes.innerHTML = "";
+        indiceSelecionado = -1;
+
+        const termo = texto.toLowerCase().trim();
+        if (termo.length < 2) {
+            listaSugestoes.classList.add("hidden");
+            return;
+        }
+
+        const filtrados = listaToners.filter(t =>
+            `${t.Marca} ${t.Modelo} ${t.Tipo}`.toLowerCase().includes(termo)
+        );
+
+        if (filtrados.length === 0) {
+            listaSugestoes.classList.add("hidden");
+            return;
+        }
+
+        filtrados.forEach((t, index) => {
+            const div = document.createElement("div");
+            div.className = "px-3 py-2 cursor-pointer hover:bg-gray-100";
+            div.textContent = `${t.Marca} - ${t.Modelo} (${t.Tipo})`;
+            div.dataset.id = t.Cod_Produto;
+
+            div.addEventListener("click", () => selecionarToner(index, filtrados));
+
+            listaSugestoes.appendChild(div);
+        });
+
+        listaSugestoes.classList.remove("hidden");
+    }
+
+    function selecionarToner(indice, filtrados) {
+        const item = filtrados[indice];
+        if (!item) return;
+
+        inputPesquisa.value = `${item.Marca} - ${item.Modelo} (${item.Tipo})`;
+        inputTonerHidden.value = item.Cod_Produto;
+
+        listaSugestoes.classList.add("hidden");
+    }
+
+    // Digitação
+    inputPesquisa.addEventListener("input", () => {
+        atualizarSugestoes(inputPesquisa.value);
+    });
+
+    // Navegação por teclado
+    inputPesquisa.addEventListener("keydown", (e) => {
+        const itens = Array.from(listaSugestoes.children);
+
+        if (e.key === "ArrowDown") {
+            e.preventDefault();
+            if (indiceSelecionado < itens.length - 1) indiceSelecionado++;
+            atualizarDestaque(itens);
+        }
+
+        if (e.key === "ArrowUp") {
+            e.preventDefault();
+            if (indiceSelecionado > 0) indiceSelecionado--;
+            atualizarDestaque(itens);
+        }
+
+        if (e.key === "Enter") {
+            if (indiceSelecionado >= 0 && itens[indiceSelecionado]) {
+                const filtrados = listaToners.filter(t =>
+                    `${t.Marca} ${t.Modelo} ${t.Tipo}`.toLowerCase()
+                        .includes(inputPesquisa.value.toLowerCase().trim())
+                );
+                selecionarToner(indiceSelecionado, filtrados);
+            }
+        }
+
+        if (e.key === "Escape") {
+            listaSugestoes.classList.add("hidden");
+        }
+    });
+
+    function atualizarDestaque(itens) {
+        itens.forEach((div, i) => {
+            div.classList.toggle("bg-gray-200", i === indiceSelecionado);
         });
     }
 
-    // === Adicionar toner ao carrinho ===
+    // Fecha quando clica fora
+    document.addEventListener("click", (e) => {
+        if (!inputPesquisa.contains(e.target) && !listaSugestoes.contains(e.target)) {
+            listaSugestoes.classList.add("hidden");
+        }
+    });
+
+    // ============================================================
+    // ADICIONAR ITEM AO CARRINHO
+    // ============================================================
+
     document.getElementById("btnAdicionarItem").addEventListener("click", () => {
-        const tonerSelect = document.getElementById("selectToner");
+        const tonerId = parseInt(inputTonerHidden.value);
+        const tonerNome = inputPesquisa.value;
         const quantidade = parseInt(document.getElementById("inputQtd").value);
         const valorUnitario = parseFloat(document.getElementById("inputValor").value);
 
-        // Validação simples e robusta
-        if (!tonerSelect.value || quantidade <= 0 || isNaN(valorUnitario) || valorUnitario <= 0) {
+        if (!tonerId || tonerNome.trim() === "" || quantidade <= 0 || isNaN(valorUnitario)) {
             alert("Preencha todos os campos do item corretamente.");
             return;
         }
 
-        const tonerId = parseInt(tonerSelect.value);
-        const tonerNome = tonerSelect.options[tonerSelect.selectedIndex].text;
         const subtotal = quantidade * valorUnitario;
 
         carrinho.push({
@@ -76,13 +174,16 @@ document.addEventListener("DOMContentLoaded", () => {
 
         atualizarCarrinho();
 
-        // Limpa campos
-        document.getElementById("selectToner").value = "";
-        document.getElementById("inputQtd").value = "";
+        inputPesquisa.value = "";
+        inputTonerHidden.value = "";
+        document.getElementById("inputQtd").value = "1";
         document.getElementById("inputValor").value = "";
     });
 
-    // === Atualizar visual do carrinho ===
+    // ============================================================
+    // CARRINHO
+    // ============================================================
+
     function atualizarCarrinho() {
         const tbody = document.getElementById("tbodyCarrinho");
         tbody.innerHTML = "";
@@ -109,13 +210,15 @@ document.addEventListener("DOMContentLoaded", () => {
         document.getElementById("totalCompra").textContent = `R$ ${total.toFixed(2)}`;
     }
 
-    // === Remover item do carrinho ===
     window.removerItem = function(index) {
         carrinho.splice(index, 1);
         atualizarCarrinho();
     };
 
-    // === Finalizar compra ===
+    // ============================================================
+    // FINALIZAR COMPRA
+    // ============================================================
+
     document.getElementById("btnFinalizarCompra").addEventListener("click", async () => {
         const Cod_Fornecedor = parseInt(document.getElementById("selectFornecedor").value);
         const NDocumento = document.getElementById("inputDocumento").value;
@@ -132,7 +235,7 @@ document.addEventListener("DOMContentLoaded", () => {
             NDocumento,
             Cond_Pagamento,
             Obs,
-            carrinho  // ✅ Envia o carrinho completo para o backend
+            carrinho
         };
 
         try {
@@ -157,8 +260,10 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     });
 
+    // ============================================================
+    // LISTAR ÚLTIMAS COMPRAS
+    // ============================================================
 
-    // === Carregar as últimas 10 compras ===
     async function listarCompras() {
         const resp = await fetch("/compras/listar");
         const compras = await resp.json();

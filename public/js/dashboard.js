@@ -113,9 +113,54 @@ function escapeHtml(str) {
         .replace(/>/g, '&gt;');
 }
 
+// =============================
+// 🔵 Vendas Recentes
+// =============================
+async function carregarVendasRecentes() {
+    try {
+        const res = await fetch('/dashboard/vendas-recentes');
+        if (!res.ok) throw new Error("Erro ao buscar vendas recentes");
+
+        const vendas = await res.json();
+        // vendas deve vir como:
+        // [{ Cliente: "...", Modelo: "...", Quantidade: 2, Valor: 150.00 }]
+
+        const tbody = document.getElementById("tbodyVendasRecentes");
+        tbody.innerHTML = "";
+
+        if (vendas.length === 0) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="4" class="text-center py-6 text-gray-400">
+                        Nenhuma venda registrada
+                    </td>
+                </tr>`;
+            return;
+        }
+
+        vendas.slice(0, 5).forEach(v => {
+            const tr = document.createElement("tr");
+            tr.className = "border-b hover:bg-gray-50";
+
+            tr.innerHTML = `
+                <td class="py-2 px-3">${escapeHtml(v.Cliente)}</td>
+                <td class="py-2 px-3">${escapeHtml(v.Toner)}</td>
+                <td class="py-2 px-3 text-center">${v.Quantidade}</td>
+                <td class="py-2 px-3 text-center">R$ ${Number(v.Valor).toFixed(2)}</td>
+            `;
+
+            tbody.appendChild(tr);
+        });
+
+    } catch (err) {
+        console.error("Erro ao carregar vendas recentes:", err);
+    }
+}
+
 
 
 // Executa ao carregar e a cada 30s
+carregarVendasRecentes()
 carregarLocacao();
 carregarDashboard();
 setInterval(carregarDashboard, 30000);

@@ -123,29 +123,29 @@
         </div>
     </div>
 
-    <!-- SEÇÃO INFERIOR -->
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <!-- ALERTAS DE ESTOQUE BAIXO -->
-        <div class="bg-white p-6 rounded-2xl shadow-sm border">
-            <h3 class="font-semibold text-gray-700 mb-4 flex items-center gap-2">
-                <i class='bx bxs-error text-orange-500 text-xl'></i> Alertas de Estoque Baixo
-            </h3>
-            <div class="flex flex-col items-center justify-center py-10 text-gray-400">
-                <i class='bx bx-box text-5xl mb-2'></i>
-                <p>Nenhum alerta no momento</p>
-            </div>
-        </div>
 
-        <!-- VENDAS RECENTES -->
-        <div class="bg-white p-6 rounded-2xl shadow-sm border">
-            <h3 class="font-semibold text-gray-700 mb-4 flex items-center gap-2">
-                <i class='bx bx-cart text-purple-500 text-xl'></i> Vendas Recentes
-            </h3>
-            <div class="flex flex-col items-center justify-center py-10 text-gray-400">
-                <i class='bx bx-cart-download text-5xl mb-2'></i>
-                <p>Nenhuma venda registrada</p>
-            </div>
-        </div>
+            <!-- VENDAS RECENTES -->
+    <div class="bg-white p-6 rounded-2xl shadow-sm border text-center">
+        <h3 class="font-semibold text-gray-700 mb-4 flex items-center gap-2">
+            <i class='bx bx-cart text-purple-500 text-xl'></i> Vendas Recentes
+        </h3>
+        <table class="w-full border-collapse text-sm" id="tabelaVendasRecentes">
+            <thead>
+            <tr class="border-b bg-gray-100">
+                <th class="text-center py-2 px-3">Cliente</th>
+                <th class="text-center py-2 px-3">Toner</th>
+                <th class="text-center py-2 px-3">Qtd.</th>
+                <th class="text-center py-2 px-3">Valor</th>
+            </tr>
+            </thead>
+            <tbody id="tbodyVendasRecentes" class="text-gray-700">
+            <tr>
+                <td colspan="4" class="text-center py-6 text-gray-400">
+                    Carregando...
+                </td>
+            </tr>
+            </tbody>
+        </table>
     </div>
 
     <!-- TONERS DE LOCAÇÃO EM ESTOQUE -->

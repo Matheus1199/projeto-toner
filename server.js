@@ -659,7 +659,36 @@ app.get('/dashboard/locacao', async (req, res) => {
         res.status(500).json({ error: "Erro ao buscar toners de locação." });
     }
 });
-;
+
+// 🔵 Rota: Últimas 5 Vendas
+// ================================
+app.get("/dashboard/vendas-recentes", async (req, res) => {
+    try {
+        const result = await pool.request().query(`
+            SELECT TOP 5
+                C.Nome AS Cliente,
+                CONCAT(T.Marca, ' ', T.Modelo) AS Toner,
+                   PI.Quantidade AS Quantidade,
+                   PI.Valor_Venda AS Valor,
+                   P.Data AS DataVenda
+            FROM Tbl_PedidosItens PI
+                     INNER JOIN Tbl_Pedidos P
+                                ON P.Cod_Pedido = PI.Cod_Pedido
+                     INNER JOIN Tbl_Clientes C
+                                ON C.Id_Cliente = PI.Cod_Cliente
+                     INNER JOIN Tbl_Toner T
+                                ON T.Cod_Produto = PI.Cod_Toner
+            ORDER BY P.Data DESC
+        `);
+
+        res.json(result.recordset);
+
+    } catch (err) {
+        console.error("Erro ao buscar vendas recentes:", err);
+        res.status(500).json({ error: "Erro ao buscar vendas recentes" });
+    }
+});
+
 
 
 // Retorna 10 últimas compras (com nome do fornecedor)
