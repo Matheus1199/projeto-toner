@@ -93,9 +93,17 @@
             </div>
             <div>
                 <label class="block text-gray-600 font-medium">Cliente</label>
-                <select id="selectCliente" class="w-full p-2 border rounded-xl">
-                    <option value="">Selecione o cliente</option>
-                </select>
+                <input id="inputPesquisaCliente"
+                       type="text"
+                       class="w-full p-2 border rounded-xl mb-2"
+                       placeholder="Digite o nome do cliente...">
+
+                <!-- onde aparecerão os resultados -->
+                <div id="resultadoClientes"
+                     class="bg-gray-100 p-3 rounded-xl hidden max-h-40 overflow-y-auto"></div>
+
+                <!-- guarda o Id do cliente selecionado -->
+                <input type="hidden" id="clienteSelecionado">
             </div>
         </div>
 

@@ -6,7 +6,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // === Abrir modal ===
     document.getElementById("btnNovaVenda").addEventListener("click", async () => {
-        await carregarClientes();
         document.getElementById("modal-bg").classList.remove("hidden");
         atualizarCarrinho();
     });
@@ -73,24 +72,6 @@ document.addEventListener("DOMContentLoaded", () => {
             resultadoDiv.appendChild(card);
         });
     });
-
-    // ========================
-    // CARREGAR CLIENTES
-    // ========================
-    async function carregarClientes() {
-        const res = await fetch("/clientes");
-        const clientes = await res.json();
-
-        const select = document.getElementById("selectCliente");
-        select.innerHTML = `<option value="">Selecione o cliente</option>`;
-
-        clientes.forEach(c => {
-            const opt = document.createElement("option");
-            opt.value = c.Id_cliente;
-            opt.textContent = c.Nome;
-            select.appendChild(opt);
-        });
-    }
 
     // ========================
     // ADICIONAR ITEM AO CARRINHO
@@ -175,13 +156,18 @@ document.addEventListener("DOMContentLoaded", () => {
     // FINALIZAR VENDA
     // ========================
     document.getElementById("btnFinalizarVenda").addEventListener("click", async () => {
-        const Cod_Cliente = parseInt(document.getElementById("selectCliente").value);
+        const Cod_Cliente = parseInt(document.getElementById("clienteSelecionado").value);
         const NDoc = document.getElementById("inputDocumento").value;
         const Cond_Pagamento = document.getElementById("inputCondPgto").value;
         const Obs = document.getElementById("inputObs").value;
 
-        if (!Cod_Cliente || carrinho.length === 0) {
-            alert("Selecione um cliente e adicione ao menos um item.");
+        if (!Cod_Cliente) {
+            alert("Selecione um cliente.");
+            return;
+        }
+
+        if (carrinho.length === 0) {
+            alert("Adicione ao menos um item.");
             return;
         }
 
@@ -238,4 +224,57 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     listarVendas();
+
+    // ========================
+// 🔍 PESQUISA DE CLIENTES
+// ========================
+    const inputPesquisaCliente = document.getElementById("inputPesquisaCliente");
+    const resultadoClientes = document.getElementById("resultadoClientes");
+
+    let clienteSelecionadoObj = null;
+
+    inputPesquisaCliente.addEventListener("input", async () => {
+        const termo = inputPesquisaCliente.value.trim();
+
+        if (termo.length < 2) {
+            resultadoClientes.classList.add("hidden");
+            resultadoClientes.innerHTML = "";
+            clienteSelecionadoObj = null;
+            document.getElementById("clienteSelecionado").value = "";
+            return;
+        }
+
+        const resp = await fetch(`/clientes/pesquisar?nome=${encodeURIComponent(termo)}`);
+        const dados = await resp.json();
+
+        resultadoClientes.innerHTML = "";
+        resultadoClientes.classList.remove("hidden");
+
+        if (dados.error) {
+            resultadoClientes.innerHTML = "<p class='text-gray-600 p-2'>Nenhum cliente encontrado.</p>";
+            return;
+        }
+
+        const cliente = dados.cliente;
+
+        // Card de cliente encontrado
+        const card = document.createElement("div");
+        card.className =
+            "bg-white p-3 rounded-xl mb-2 border shadow-sm cursor-pointer hover:bg-gray-50 transition";
+
+        card.innerHTML = `
+        <p class="font-semibold">${cliente.Nome}</p>
+        <p class="text-sm text-gray-600">Status: ${cliente.Ativo ? "Ativo" : "Inativo"}</p>
+        <p class="text-sm text-gray-600">Canal: ${cliente.Id_vendedor}</p>
+    `;
+
+        card.addEventListener("click", () => {
+            clienteSelecionadoObj = cliente;
+            inputPesquisaCliente.value = cliente.Nome;
+            document.getElementById("clienteSelecionado").value = cliente.Id_cliente;
+            resultadoClientes.classList.add("hidden");
+        });
+
+        resultadoClientes.appendChild(card);
+    });
 });
