@@ -5,17 +5,17 @@ module.exports = {
         try {
             const result = await pool.request().query(`
                 SELECT TOP 10 
-                    C.Cod_Compra, 
-                    C.Data_Compra, 
-                    C.Cod_Fornecedor,
-                    F.Nome AS Nome_Fornecedor,
-                    C.NDocumento,
-                    C.Valor_Total,
-                    C.Cond_Pagamento,
-                    C.Obs
+                    C.Cod_Compra,
+                    C.Data_Compra,
+                       C.Cod_Fornecedor,
+                       F.Nome AS Nome_Fornecedor,
+                       C.NDocumento,
+                       C.Valor_Total,
+                       C.Cond_Pagamento,
+                       C.Obs
                 FROM Tbl_Compras C
-                LEFT JOIN Tbl_Fornecedores F ON C.Cod_Fornecedor = F.Id_Fornecedor
-                ORDER BY C.Data_Compra DESC
+                         LEFT JOIN Tbl_Fornecedores F ON C.Cod_Fornecedor = F.Id_Fornecedor
+                ORDER BY C.Cod_Compra DESC
             `);
 
             res.json(result.recordset);
@@ -30,20 +30,54 @@ module.exports = {
         const pool = req.app.get("db");
         const sql = req.app.get("sql");
 
-        let { Cod_Fornecedor, NDocumento, Cond_Pagamento, Obs, carrinho } = req.body;
+        let {
+            Cod_Fornecedor,
+            NDocumento,
+            Cond_Pagamento,
+            Obs,
+            carrinho,
+            financeiro
+        } = req.body;
+
+        // =========================
+        // VALIDAÇÕES
+        // =========================
 
         if (!carrinho || !carrinho.length)
-            return res.status(400).json({ error: "O carrinho está vazio." });
+            return res.status(400).json({ error: "Adicione ao menos um item." });
+
+        if (!financeiro || !financeiro.length)
+            return res.status(400).json({ error: "Você precisa lançar ao menos um título financeiro." });
+
+        const totalItens = carrinho.reduce((sum, item) =>
+            sum + (item.valor_compra * item.quantidade), 0);
+
+        const totalFin = financeiro.reduce((sum, f) =>
+            sum + Number(f.valor), 0);
+
+        // Arredondamento correto
+        if (Number(totalItens.toFixed(2)) !== Number(totalFin.toFixed(2))) {
+            return res.status(400).json({
+                error: "O valor financeiro não confere com o valor total da compra."
+            });
+        }
+
+        // =========================
+        // TRANSAÇÃO SQL
+        // =========================
+
+        const transaction = new sql.Transaction(pool);
 
         try {
-            const total = carrinho.reduce((sum, item) => sum + item.Subtotal, 0);
+            await transaction.begin();
+            const request = new sql.Request(transaction);
 
             // 1) Inserir compra principal
-            const compraResult = await pool.request()
+            const compraResult = await request
                 .input("Data_Compra", sql.DateTime, new Date())
                 .input("Cod_Fornecedor", sql.Int, Cod_Fornecedor)
                 .input("NDocumento", sql.VarChar(50), NDocumento)
-                .input("Valor_Total", sql.Decimal(18, 2), total)
+                .input("Valor_Total", sql.Decimal(18, 2), totalItens)
                 .input("Cond_Pagamento", sql.VarChar(50), Cond_Pagamento)
                 .input("Obs", sql.VarChar(255), Obs)
                 .query(`
@@ -57,12 +91,12 @@ module.exports = {
 
             // 2) Inserir itens da compra
             for (const item of carrinho) {
-                await pool.request()
+                await new sql.Request(transaction)
                     .input("Cod_Compra", sql.Int, Cod_Compra)
-                    .input("Cod_Toner", sql.Int, item.Cod_Produto || item.Cod_Toner)
-                    .input("Quantidade", sql.Int, item.Quantidade)
-                    .input("Valor_Compra", sql.Decimal(18, 2), item.ValorUnitario)
-                    .input("Saldo", sql.Int, item.Quantidade)
+                    .input("Cod_Toner", sql.Int, item.cod_toner)
+                    .input("Quantidade", sql.Int, item.quantidade)
+                    .input("Valor_Compra", sql.Decimal(18, 2), item.valor_compra)
+                    .input("Saldo", sql.Int, item.quantidade)
                     .query(`
                         INSERT INTO Tbl_ComprasItens 
                         (Cod_Compra, Cod_Toner, Quantidade, Valor_Compra, Saldo)
@@ -71,7 +105,32 @@ module.exports = {
                     `);
             }
 
-            // 3) Buscar dados completos
+            // 3) Inserir financeiro (Pagamentos a Pagar)
+            for (const fin of financeiro) {
+                await new sql.Request(transaction)
+                    .input("Tipo", sql.Int, 1)            // 1 = compra
+                    .input("Operacao", sql.Int, 1)        // 1 = compra
+                    .input("Id_Operacao", sql.Int, Cod_Compra)
+                    .input("Data_Vencimento", sql.DateTime, new Date(fin.vencimento))
+                    .input("Valor", sql.Decimal(18, 2), fin.valor)
+                    .input("EAN", sql.VarChar(100), fin.ean || null)
+                    .input("Conta", sql.Int, fin.conta || null)
+                    .input("Valor_Baixa", sql.Decimal(18, 2), null)
+                    .input("Data_Baixa", sql.DateTime, null)
+                    .input("Obs", sql.VarChar(255), fin.obs || null)
+                    .input("Baixa", sql.Bit, 0)
+                    .query(`
+                        INSERT INTO Tbl_PagRec
+                        (Tipo, Operacao, Id_Operacao, Data_Vencimento, Valor, EAN, Conta, Valor_Baixa, Data_Baixa, Obs, Baixa)
+                        VALUES
+                        (@Tipo, @Operacao, @Id_Operacao, @Data_Vencimento, @Valor, @EAN, @Conta, @Valor_Baixa, @Data_Baixa, @Obs, @Baixa)
+                    `);
+            }
+
+            // Commit
+            await transaction.commit();
+
+            // Retornar dados completos da compra
             const dadosCompra = await pool.request()
                 .input("Cod_Compra", sql.Int, Cod_Compra)
                 .query(`
@@ -92,6 +151,7 @@ module.exports = {
 
         } catch (error) {
             console.error("Erro ao finalizar compra:", error);
+            await transaction.rollback();
             res.status(500).json({ error: "Erro ao finalizar compra." });
         }
     }

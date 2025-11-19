@@ -1,78 +1,125 @@
 // ==============================
-// compras.js - TonerStock
+// compras.js - TonerStock (ATUALIZADO para modal com 2 abas)
 // ==============================
 
 let compraRecemCriada = null;
 
 document.addEventListener("DOMContentLoaded", () => {
 
+    // ===== memória local (antes de inserir no banco) =====
     let carrinho = [];
     let listaToners = [];
+    let listaFornecedores = [];
+    let listaFinanceiro = []; // { vencimento, valor, ean, obs, conta, tipo, operacao }
+
     let indiceSelecionado = -1;
 
+    // ===== DOM =====
     const inputPesquisa = document.getElementById("inputPesquisaToner");
     const listaSugestoes = document.getElementById("listaSugestoesToner");
     const inputTonerHidden = document.getElementById("selectToner");
 
-    // === Abrir modal de nova compra ===
-    document.getElementById("btnNovaCompra").addEventListener("click", async () => {
+    const btnNovaCompra = document.getElementById("btnNovaCompra");
+    const modalBg = document.getElementById("modal-bg");
+
+    const tbodyCarrinho = document.getElementById("tbodyCarrinho");
+    const totalCompraEl = document.getElementById("totalCompra");
+    const selectFornecedor = document.getElementById("selectFornecedor");
+    const inputQtd = document.getElementById("inputQtd");
+    const inputValor = document.getElementById("inputValor");
+    const inputDocumento = document.getElementById("inputDocumento");
+    const inputCondPgto = document.getElementById("inputCondPgto");
+    const inputObs = document.getElementById("inputObs");
+
+    // financeiro DOM
+    const lancVencimento = document.getElementById("lancVencimento");
+    const lancValor = document.getElementById("lancValor");
+    const lancEAN = document.getElementById("lancEAN");
+    const lancObs = document.getElementById("lancObs");
+    const btnAddParcela = document.getElementById("btnAddParcela");
+    const tbodyFinanceiro = document.getElementById("tbodyFinanceiro");
+    const totalFinanceiroEl = document.getElementById("totalFinanceiro");
+
+    const btnSalvarCompra = document.getElementById("btnSalvarCompra");
+
+    // Tabs
+    const tabButtons = document.querySelectorAll('.tab-item');
+    const tabDetalhes = document.getElementById('tab-detalhes');
+    const tabFinanceiro = document.getElementById('tab-financeiro');
+
+    // ===== util =====
+    const formatBRL = (v) => `R$ ${Number(v || 0).toFixed(2)}`;
+
+    // ===== abre modal =====
+    btnNovaCompra && btnNovaCompra.addEventListener("click", async () => {
         await carregarFornecedores();
         await carregarToners();
-
-        document.getElementById("modal-bg").classList.remove("hidden");
+        limparEstado();
+        modalBg.classList.remove("hidden");
+        // garantir aba detalhes inicialmente
+        setActiveTab('detalhes');
         atualizarCarrinho();
+        atualizarTabelaFinanceiro();
     });
 
-    // === Fechar modal ===
+    // fechar modal (usado no HTML)
     window.fecharModal = function() {
-        document.getElementById("modal-bg").classList.add("hidden");
-        carrinho = [];
-        atualizarCarrinho();
+        modalBg.classList.add("hidden");
+        limparEstado();
     };
 
-    function abrirModalLancamento(compra) {
-        const div = document.getElementById("infoCompraLanc");
-
-        div.innerHTML = `
-        <p><strong>Código da Compra:</strong> ${compra.Cod_Compra}</p>
-        <p><strong>Data:</strong> ${new Date(compra.Data_Compra).toLocaleDateString()}</p>
-        <p><strong>Fornecedor:</strong> ${compra.Nome_Fornecedor}</p>
-        <p><strong>Documento:</strong> ${compra.NDocumento}</p>
-        <p><strong>Valor Total:</strong> R$ ${parseFloat(compra.Valor_Total).toFixed(2)}</p>
-        <p><strong>Condição de Pgto:</strong> ${compra.Cond_Pagamento}</p>
-    `;
-
-        document.getElementById("modal-lanc").classList.remove("hidden");
+    function limparEstado() {
+        carrinho = [];
+        listaFinanceiro = [];
+        inputPesquisa.value = '';
+        inputTonerHidden.value = '';
+        inputQtd.value = '1';
+        inputValor.value = '';
+        inputDocumento.value = '';
+        inputCondPgto.value = '';
+        inputObs.value = '';
+        lancVencimento.value = '';
+        lancValor.value = '';
+        lancEAN.value = '';
+        lancObs.value = '';
+        atualizarCarrinho();
+        atualizarTabelaFinanceiro();
     }
 
-
-    // === Buscar fornecedores ===
+    // ===== carregar selects =====
     async function carregarFornecedores() {
-        const resp = await fetch("/fornecedores/listar");
-        const fornecedores = await resp.json();
-
-        const select = document.getElementById("selectFornecedor");
-        select.innerHTML = `<option value="">Selecione o fornecedor</option>`;
-        fornecedores.forEach(f => {
-            const opt = document.createElement("option");
-            opt.value = f.Id_Fornecedor;
-            opt.textContent = f.Nome;
-            select.appendChild(opt);
-        });
+        try {
+            const resp = await fetch("/fornecedores/listar");
+            const fornecedores = await resp.json();
+            listaFornecedores = fornecedores || [];
+            selectFornecedor.innerHTML = `<option value="">Selecione o fornecedor</option>`;
+            listaFornecedores.forEach(f => {
+                const opt = document.createElement('option');
+                opt.value = f.Id_Fornecedor || f.id || f.Id;
+                opt.textContent = f.Nome || f.nome;
+                selectFornecedor.appendChild(opt);
+            });
+        } catch (err) {
+            console.warn('Erro carregar fornecedores', err);
+            selectFornecedor.innerHTML = `<option value="">Erro ao carregar</option>`;
+        }
     }
 
-    // === Buscar toners ===
     async function carregarToners() {
-        const resp = await fetch("/toners/listar");
-        listaToners = await resp.json();
-
-        inputPesquisa.value = "";
-        inputTonerHidden.value = "";
+        try {
+            const resp = await fetch("/toners/listar");
+            listaToners = await resp.json();
+            inputPesquisa.value = '';
+            inputTonerHidden.value = '';
+        } catch (err) {
+            console.warn('Erro carregar toners', err);
+            listaToners = [];
+        }
     }
 
-    // ============================================================
-    // AUTOCOMPLETE AVANÇADO DO TONER
-    // ============================================================
+    // =========================
+    // AUTOCOMPLETE TONER
+    // =========================
 
     function atualizarSugestoes(texto) {
         listaSugestoes.innerHTML = "";
@@ -85,7 +132,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
         const filtrados = listaToners.filter(t =>
-            `${t.Marca} ${t.Modelo} ${t.Tipo}`.toLowerCase().includes(termo)
+            `${t.Marca || ''} ${t.Modelo || ''} ${t.Tipo || ''}`.toLowerCase().includes(termo)
         );
 
         if (filtrados.length === 0) {
@@ -96,10 +143,12 @@ document.addEventListener("DOMContentLoaded", () => {
         filtrados.forEach((t, index) => {
             const div = document.createElement("div");
             div.className = "px-3 py-2 cursor-pointer hover:bg-gray-100";
-            div.textContent = `${t.Marca} - ${t.Modelo} (${t.Tipo})`;
+            div.textContent = `${t.Marca || ''} - ${t.Modelo || ''} ${t.Tipo ? '(' + t.Tipo + ')' : ''}`.trim();
             div.dataset.id = t.Cod_Produto;
 
-            div.addEventListener("click", () => selecionarToner(index, filtrados));
+            div.addEventListener("click", () => {
+                selecionarToner(index, filtrados);
+            });
 
             listaSugestoes.appendChild(div);
         });
@@ -110,21 +159,18 @@ document.addEventListener("DOMContentLoaded", () => {
     function selecionarToner(indice, filtrados) {
         const item = filtrados[indice];
         if (!item) return;
-
-        inputPesquisa.value = `${item.Marca} - ${item.Modelo} (${item.Tipo})`;
+        inputPesquisa.value = `${item.Marca || ''} - ${item.Modelo || ''} ${item.Tipo ? '(' + item.Tipo + ')' : ''}`.trim();
         inputTonerHidden.value = item.Cod_Produto;
-
         listaSugestoes.classList.add("hidden");
     }
 
-    // Digitação
-    inputPesquisa.addEventListener("input", () => {
+    inputPesquisa && inputPesquisa.addEventListener("input", () => {
         atualizarSugestoes(inputPesquisa.value);
     });
 
-    // Navegação por teclado
-    inputPesquisa.addEventListener("keydown", (e) => {
+    inputPesquisa && inputPesquisa.addEventListener("keydown", (e) => {
         const itens = Array.from(listaSugestoes.children);
+        if (!itens.length) return;
 
         if (e.key === "ArrowDown") {
             e.preventDefault();
@@ -139,6 +185,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
         if (e.key === "Enter") {
+            e.preventDefault();
             if (indiceSelecionado >= 0 && itens[indiceSelecionado]) {
                 const filtrados = listaToners.filter(t =>
                     `${t.Marca} ${t.Modelo} ${t.Tipo}`.toLowerCase()
@@ -159,25 +206,25 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-    // Fecha quando clica fora
+    // fechar sugestões ao clicar fora
     document.addEventListener("click", (e) => {
         if (!inputPesquisa.contains(e.target) && !listaSugestoes.contains(e.target)) {
             listaSugestoes.classList.add("hidden");
         }
     });
 
-    // ============================================================
+    // =========================
     // ADICIONAR ITEM AO CARRINHO
-    // ============================================================
+    // =========================
 
-    document.getElementById("btnAdicionarItem").addEventListener("click", () => {
+    document.getElementById("btnAdicionarItem") && document.getElementById("btnAdicionarItem").addEventListener("click", () => {
         const tonerId = parseInt(inputTonerHidden.value);
         const tonerNome = inputPesquisa.value;
-        const quantidade = parseInt(document.getElementById("inputQtd").value);
-        const valorUnitario = parseFloat(document.getElementById("inputValor").value);
+        const quantidade = parseInt(inputQtd.value);
+        const valorUnitario = parseFloat(inputValor.value);
 
-        if (!tonerId || tonerNome.trim() === "" || quantidade <= 0 || isNaN(valorUnitario)) {
-            alert("Preencha todos os campos do item corretamente.");
+        if (!tonerId || !tonerNome || isNaN(quantidade) || quantidade <= 0 || isNaN(valorUnitario) || valorUnitario <= 0) {
+            alert("Preencha todos os campos do item corretamente (produto, quantidade > 0, valor unitário > 0).");
             return;
         }
 
@@ -191,157 +238,255 @@ document.addEventListener("DOMContentLoaded", () => {
             Subtotal: subtotal
         });
 
-        atualizarCarrinho();
+        // reset campos item
+        inputPesquisa.value = '';
+        inputTonerHidden.value = '';
+        inputQtd.value = '1';
+        inputValor.value = '';
 
-        inputPesquisa.value = "";
-        inputTonerHidden.value = "";
-        document.getElementById("inputQtd").value = "1";
-        document.getElementById("inputValor").value = "";
+        atualizarCarrinho();
     });
 
-    // ============================================================
-    // CARRINHO
-    // ============================================================
-
+    // atualizar tabela do carrinho
     function atualizarCarrinho() {
-        const tbody = document.getElementById("tbodyCarrinho");
-        tbody.innerHTML = "";
-
+        tbodyCarrinho.innerHTML = '';
         let total = 0;
 
-        carrinho.forEach((item, index) => {
+        carrinho.forEach((item, idx) => {
             const tr = document.createElement("tr");
             tr.innerHTML = `
                 <td class="py-2 px-3">${item.Nome_Produto}</td>
                 <td class="py-2 px-3 text-center">${item.Quantidade}</td>
-                <td class="py-2 px-3 text-center">R$ ${item.ValorUnitario.toFixed(2)}</td>
-                <td class="py-2 px-3 text-center font-semibold">R$ ${item.Subtotal.toFixed(2)}</td>
+                <td class="py-2 px-3 text-center">R$ ${Number(item.ValorUnitario).toFixed(2)}</td>
+                <td class="py-2 px-3 text-center font-semibold">R$ ${Number(item.Subtotal).toFixed(2)}</td>
                 <td class="py-2 px-3 text-center">
-                    <button onclick="removerItem(${index})" class="text-red-500 hover:text-red-700">
+                    <button data-idx="${idx}" class="btnRemoverItem text-red-500 hover:text-red-700">
                         <i class='bx bx-trash'></i>
                     </button>
                 </td>
             `;
-            tbody.appendChild(tr);
-            total += item.Subtotal;
+            tbodyCarrinho.appendChild(tr);
+            total += Number(item.Subtotal);
         });
 
-        document.getElementById("totalCompra").textContent = `R$ ${total.toFixed(2)}`;
+        totalCompraEl.textContent = formatBRL(total);
     }
 
-    window.removerItem = function(index) {
-        carrinho.splice(index, 1);
-        atualizarCarrinho();
-    };
+    // remover item delegado
+    tbodyCarrinho.addEventListener('click', (e) => {
+        if (e.target.closest('.btnRemoverItem')) {
+            const btn = e.target.closest('.btnRemoverItem');
+            const idx = Number(btn.dataset.idx);
+            carrinho.splice(idx, 1);
+            atualizarCarrinho();
+        }
+    });
 
-    // ============================================================
-    // FINALIZAR COMPRA
-    // ============================================================
+    // =========================
+    // FINANCEIRO (aba)
+    // =========================
 
-    document.getElementById("btnFinalizarCompra").addEventListener("click", async () => {
-        const Cod_Fornecedor = parseInt(document.getElementById("selectFornecedor").value);
-        const NDocumento = document.getElementById("inputDocumento").value;
-        const Cond_Pagamento = document.getElementById("inputCondPgto").value;
-        const Obs = document.getElementById("inputObs").value;
+    btnAddParcela && btnAddParcela.addEventListener('click', () => {
+        const ven = lancVencimento.value;
+        const val = parseFloat(lancValor.value);
+        const ean = lancEAN.value || '';
+        const obs = lancObs.value || '';
 
-        if (!Cod_Fornecedor || !NDocumento || carrinho.length === 0) {
-            alert("Preencha todos os campos obrigatórios e adicione ao menos um item.");
-            return;
+        if (!ven) return alert('Informe a data de vencimento.');
+        if (isNaN(val) || val <= 0) return alert('Informe um valor válido (> 0).');
+
+        listaFinanceiro.push({
+            vencimento: ven,
+            valor: Number(Number(val).toFixed(2)),
+            ean,
+            obs,
+            conta: null,
+            tipo: 1,      // 1 = compra
+            operacao: 1   // 1 = compra
+        });
+
+        // limpa campos
+        lancVencimento.value = '';
+        lancValor.value = '';
+        lancEAN.value = '';
+        lancObs.value = '';
+
+        atualizarTabelaFinanceiro();
+    });
+
+    function atualizarTabelaFinanceiro() {
+        tbodyFinanceiro.innerHTML = '';
+        let total = 0;
+
+        listaFinanceiro.forEach((f, idx) => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td class="py-2 px-3">${f.vencimento}</td>
+                <td class="py-2 px-3">${Number(f.valor).toFixed(2)}</td>
+                <td class="py-2 px-3">${f.ean || ''}</td>
+                <td class="py-2 px-3">${f.obs || ''}</td>
+                <td class="py-2 px-3 text-center">
+                    <button data-idx="${idx}" class="btnRemoverParcela text-red-500 hover:text-red-700">
+                        <i class='bx bx-trash'></i>
+                    </button>
+                </td>
+            `;
+            tbodyFinanceiro.appendChild(tr);
+            total += Number(f.valor);
+        });
+
+        totalFinanceiroEl.textContent = formatBRL(total);
+    }
+
+    // remover parcela delegated
+    tbodyFinanceiro.addEventListener('click', (e) => {
+        if (e.target.closest('.btnRemoverParcela')) {
+            const idx = Number(e.target.closest('.btnRemoverParcela').dataset.idx);
+            listaFinanceiro.splice(idx, 1);
+            atualizarTabelaFinanceiro();
+        }
+    });
+
+    // =========================
+    // TABS UI
+    // =========================
+
+    function setActiveTab(tabName) {
+        tabButtons.forEach(b => {
+            if (b.dataset.tab === tabName) {
+                b.classList.add('border-blue-600', 'text-blue-600');
+            } else {
+                b.classList.remove('border-blue-600', 'text-blue-600');
+            }
+        });
+
+        if (tabName === 'detalhes') {
+            tabDetalhes.classList.remove('hidden');
+            tabFinanceiro.classList.add('hidden');
+        } else {
+            tabDetalhes.classList.add('hidden');
+            tabFinanceiro.classList.remove('hidden');
+        }
+    }
+
+    tabButtons.forEach(b => {
+        b.addEventListener('click', (e) => {
+            setActiveTab(e.currentTarget.dataset.tab);
+        });
+    });
+
+    // =========================
+    // SALVAR COMPRA (VALIDAÇÕES E ENVIO)
+    // =========================
+
+    btnSalvarCompra && btnSalvarCompra.addEventListener('click', async () => {
+        const Cod_Fornecedor = Number(selectFornecedor.value) || null;
+        const NDocumento = inputDocumento.value || '';
+        const Cond_Pagamento = inputCondPgto.value || '';
+        const Obs = inputObs.value || '';
+
+        // valida itens
+        if (!Cod_Fornecedor) return alert('Selecione um fornecedor.');
+        if (carrinho.length === 0) return alert('Adicione ao menos um item na compra.');
+
+        // calcula totais
+        const totalItens = carrinho.reduce((acc, it) => acc + (Number(it.Subtotal) || 0), 0);
+        const totalFin = listaFinanceiro.reduce((acc, f) => acc + (Number(f.valor) || 0), 0);
+
+        // validações financeiras
+        if (Number(totalFin.toFixed(2)) <= 0) {
+            // alternativo: permitir lançar sem financeiro? aqui requisitamos como obrigatório
+            return alert('Você precisa lançar ao menos um título financeiro com valor maior que 0.');
         }
 
+        // comparação monetária com duas casas
+        if (Number(totalItens.toFixed(2)) !== Number(totalFin.toFixed(2))) {
+            return alert('O total financeiro não confere com o valor total da compra. Verifique os valores.');
+        }
+
+        // montar objeto que será enviado ao backend
         const dados = {
             Cod_Fornecedor,
             NDocumento,
             Cond_Pagamento,
             Obs,
-            carrinho
+            carrinho: carrinho.map(it => ({
+                cod_toner: it.Cod_Produto,
+                quantidade: it.Quantidade,
+                valor_compra: Number(Number(it.ValorUnitario).toFixed(2))
+            })),
+            financeiro: listaFinanceiro.map(f => ({
+                vencimento: f.vencimento,
+                valor: Number(Number(f.valor).toFixed(2)),
+                ean: f.ean,
+                obs: f.obs,
+                conta: f.conta || null,
+                tipo: f.tipo,
+                operacao: f.operacao
+            }))
         };
 
+        // enviar para o servidor (apenas agora, depois de tudo preenchido)
         try {
-            const resp = await fetch("/compras/finalizar", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
+            const resp = await fetch('/compras/finalizar', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(dados)
             });
 
-            const data = await resp.json();
+            const json = await resp.json();
 
-            if (resp.ok) {
-                compraRecemCriada = data; // <- recebe Cod_Compra e outros retornos do backend
-
-                alert("Compra salva com sucesso!");
-
-                fecharModal();
-                abrirModalLancamento(data);
-                listarCompras();
-            } else {
-                alert(data.error || "Erro ao salvar compra.");
+            if (!resp.ok) {
+                return alert(json.error || 'Erro ao registrar compra.');
             }
+
+            // sucesso
+            compraRecemCriada = json; // pode conter Cod_Compra
+            alert('Compra registrada com sucesso! Cod_Compra: ' + (json.Cod_Compra || '—'));
+            limparEstado();
+            modalBg.classList.add('hidden');
+            listarCompras();
+
+            // (opcional) abrir aba financeiro ou exibir detalhe: você pode customizar aqui.
+            // exemplo: setActiveTab('financeiro');
+
         } catch (err) {
-            console.error(err);
-            alert("Erro de conexão com o servidor.");
+            console.error('Erro salvar compra', err);
+            alert('Erro de conexão ao salvar compra.');
         }
     });
 
-    // ============================================================
+    // =========================
     // LISTAR ÚLTIMAS COMPRAS
-    // ============================================================
+    // =========================
 
     async function listarCompras() {
-        const resp = await fetch("/compras/listar");
-        const compras = await resp.json();
+        try {
+            const resp = await fetch("/compras/listar");
+            const compras = await resp.json();
+            const tbody = document.getElementById("tabelaCompras");
+            tbody.innerHTML = "";
 
-        const tbody = document.getElementById("tabelaCompras");
-        tbody.innerHTML = "";
-
-        compras.forEach(c => {
-            const tr = document.createElement("tr");
-            tr.innerHTML = `
-                <td class="py-2 px-3">${c.Cod_Compra}</td>
-                <td class="py-2 px-3">${new Date(c.Data_Compra).toLocaleDateString()}</td>
-                <td class="py-2 px-3">${c.Nome_Fornecedor}</td>
-                <td class="py-2 px-3">R$ ${parseFloat(c.Valor_Total).toFixed(2)}</td>
-                <td class="py-2 px-3">${c.NDocumento}</td>
-            `;
-            tbody.appendChild(tr);
-        });
+            (compras || []).forEach(c => {
+                const tr = document.createElement("tr");
+                tr.innerHTML = `
+                    <td class="py-2 px-3">${c.Cod_Compra}</td>
+                    <td class="py-2 px-3">${c.Data_Compra ? new Date(c.Data_Compra).toLocaleDateString() : ''}</td>
+                    <td class="py-2 px-3">${c.Nome_Fornecedor}</td>
+                    <td class="py-2 px-3">${formatBRL(parseFloat(c.Valor_Total || 0))}</td>
+                    <td class="py-2 px-3">${c.NDocumento || ''}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        } catch (err) {
+            console.warn('Erro listar compras', err);
+        }
     }
 
-    // === Início ===
+    // inicial
     listarCompras();
-});
 
-document.getElementById("btnSalvarLancamento").addEventListener("click", async () => {
+}); // DOMContentLoaded end
 
-    if (!compraRecemCriada) {
-        alert("Erro: nenhuma compra encontrada para lançamento!");
-        return;
-    }
-
-    const dados = {
-        Id_Operacao: compraRecemCriada.Cod_Compra,
-        Data_Vencimento: document.getElementById("lancVencimento").value,
-        Valor: parseFloat(document.getElementById("lancValor").value),
-        EAN: document.getElementById("lancEAN").value,
-        Obs: document.getElementById("lancObs").value,
-        Tipo: 1, // 1 = pagar
-        Operacao: 1, // 1 = compra
-        Conta: 1,
-        Baixa: 0
-    };
-
-    const resp = await fetch("/pagrec/lancar", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(dados)
-    });
-
-    const r = await resp.json();
-
-    if (resp.ok) {
-        alert("Título lançado com sucesso!");
-        document.getElementById("modal-lanc").classList.add("hidden");
-    } else {
-        alert(r.error || "Erro ao lançar título.");
-    }
-});
+// Nota: removido o handler antigo btnSalvarLancamento (agora tudo vai via botão Salvar Compra)
+// Fim do arquivo
