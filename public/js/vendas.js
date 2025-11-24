@@ -1,14 +1,14 @@
 // ==============================
-// vendas.js - TonerStock (ATUALIZADO: modal com 2 abas, financeiro integrado)
+// vendas.js - TonerStock (ATUALIZADO: modal com 2 abas, financeiro integrado + PESQUISA)
 // Mantém Id_ItemCompra (Modelo A)
 // ==============================
 
 document.addEventListener("DOMContentLoaded", () => {
     // ====== estado local ======
-    let carrinho = []; // itens: {Cod_Toner, Id_ItemCompra, Nome_Produto, Quantidade, Valor_Compra, Valor_Venda, Subtotal}
-    let listaFinanceiro = []; // parcelas: { vencimento, valor, ean, obs, conta, tipo=2, operacao=2 }
-    let listaClientesCache = []; // opcional cache
-    let listaTonersCache = [];   // opcional cache (se usar)
+    let carrinho = [];
+    let listaFinanceiro = [];
+    let listaClientesCache = [];
+    let listaTonersCache = [];
 
     // ====== DOM ======
     const btnNovaVenda = document.getElementById("btnNovaVenda");
@@ -52,7 +52,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const btnSalvarVenda = document.getElementById("btnSalvarVenda");
 
-    // controle de seleção do lote/toner
+    // elementos da PESQUISA
+    const pesquisaPedidoInput = document.getElementById("pesquisaPedido");
+    const btnPesquisarPedido = document.getElementById("btnPesquisarPedido");
+    const tabelaPesquisa = document.getElementById("tabelaPesquisa");
+    const resultadoPesquisa = document.getElementById("resultadoPesquisa");
+
     let loteSelecionado = null;
     let indiceSugestao = -1;
 
@@ -65,12 +70,10 @@ document.addEventListener("DOMContentLoaded", () => {
         limparEstado();
         modalBg.classList.remove('hidden');
         setActiveTab('detalhes');
-        // focar input cliente
         setTimeout(()=> inputPesquisaCliente.focus(), 50);
-        listarVendas(); // opcional refresh
+        listarVendas();
     });
 
-    // fechar modal (usado pelo HTML)
     window.fecharModal = function() {
         modalBg.classList.add('hidden');
         limparEstado();
@@ -117,7 +120,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
     tabButtons.forEach(b => b.addEventListener('click', e => setActiveTab(e.currentTarget.dataset.tab)));
 
-    // ====== listar vendas (reload) ======
+    // ====== LISTAR VENDAS (últimas 10) ======
     async function listarVendas() {
         try {
             const resp = await fetch('/vendas/listar');
@@ -128,22 +131,66 @@ document.addEventListener("DOMContentLoaded", () => {
             (data || []).forEach(v => {
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
-          <td class="py-2 px-3">${v.Cod_Pedido}</td>
-          <td class="py-2 px-3">${v.Data ? new Date(v.Data).toLocaleDateString() : ''}</td>
-          <td class="py-2 px-3">${v.Nome_Cliente || ''}</td>
-          <td class="py-2 px-3">${fmtBRL(v.Valor_Total || 0)}</td>
-          <td class="py-2 px-3">${v.NDoc || ''}</td>
-        `;
+                  <td class="py-2 px-3">${v.Cod_Pedido}</td>
+                  <td class="py-2 px-3">${v.Data ? new Date(v.Data).toLocaleDateString() : ''}</td>
+                  <td class="py-2 px-3">${v.Nome_Cliente || ''}</td>
+                  <td class="py-2 px-3">${fmtBRL(v.Valor_Total || 0)}</td>
+                  <td class="py-2 px-3">${v.NDoc || ''}</td>
+                `;
                 tbody.appendChild(tr);
             });
         } catch (err) {
             console.warn('Erro listar vendas', err);
         }
     }
-    // inicial
     listarVendas();
 
-    // ====== AUTOCOMPLETE CLIENTE (mantido A) ======
+    // ====== PESQUISAR PEDIDO POR CÓDIGO ======
+    if (btnPesquisarPedido) {
+        btnPesquisarPedido.addEventListener("click", async () => {
+            const codigo = pesquisaPedidoInput.value.trim();
+
+            if (!codigo) {
+                alert("Digite o código do pedido!");
+                return;
+            }
+
+            try {
+                const resp = await fetch(`/vendas/pesquisar/${codigo}`);
+                const dados = await resp.json();
+
+                tabelaPesquisa.innerHTML = "";
+                resultadoPesquisa.classList.remove("hidden");
+
+                if (!dados || dados.length === 0) {
+                    tabelaPesquisa.innerHTML = `
+                        <tr><td colspan="6" class="py-2 text-center text-gray-500">
+                            Nenhum pedido encontrado.
+                        </td></tr>`;
+                    return;
+                }
+
+                dados.forEach(item => {
+                    tabelaPesquisa.insertAdjacentHTML("beforeend", `
+                        <tr class="border-b">
+                            <td class="py-2 px-3">${item.Cod_Pedido}</td>
+                            <td class="py-2 px-3">${item.Data}</td>
+                            <td class="py-2 px-3">${item.Cliente}</td>
+                            <td class="py-2 px-3">${item.Modelo}</td>
+                            <td class="py-2 px-3">${item.Quantidade}</td>
+                            <td class="py-2 px-3">R$ ${item.Valor_Total}</td>
+                        </tr>
+                    `);
+                });
+
+            } catch (e) {
+                alert("Erro ao pesquisar pedido!");
+                console.error(e);
+            }
+        });
+    }
+
+    // ====== AUTOCOMPLETE CLIENTE ======
     let clienteDebounce;
     inputPesquisaCliente && inputPesquisaCliente.addEventListener('input', () => {
         clearTimeout(clienteDebounce);
@@ -160,7 +207,6 @@ document.addEventListener("DOMContentLoaded", () => {
                 const json = await resp.json();
                 resultadoClientes.innerHTML = '';
                 resultadoClientes.classList.remove('hidden');
-                // API: pode retornar vários ou um; aqui suportamos array ou único
                 const lista = Array.isArray(json) ? json : (json.clientes || (json.cliente ? [json.cliente] : []));
                 if (!lista || !lista.length) {
                     resultadoClientes.innerHTML = "<p class='text-gray-600 p-2'>Nenhum cliente encontrado.</p>";
@@ -169,13 +215,13 @@ document.addEventListener("DOMContentLoaded", () => {
                 lista.forEach(cli => {
                     const card = document.createElement('div');
                     card.className = "bg-white p-3 rounded-xl mb-2 border shadow-sm cursor-pointer hover:bg-gray-50";
-                    card.innerHTML = `<p class="font-semibold">${cli.Nome || cli.nome}</p>
-            <p class="text-sm text-gray-600">Status: ${cli.Ativo ? 'Ativo' : 'Inativo'}</p>`;
+                    card.innerHTML = `
+                        <p class="font-semibold">${cli.Nome || cli.nome}</p>
+                        <p class="text-sm text-gray-600">Status: ${cli.Ativo ? 'Ativo' : 'Inativo'}</p>`;
                     card.addEventListener('click', () => {
                         inputPesquisaCliente.value = cli.Nome || cli.nome;
                         clienteSelecionadoHidden.value = cli.Id_Cliente || cli.Id_cliente || cli.id;
                         resultadoClientes.classList.add('hidden');
-                        resultadoClientes.innerHTML = '';
                     });
                     resultadoClientes.appendChild(card);
                 });
@@ -185,19 +231,13 @@ document.addEventListener("DOMContentLoaded", () => {
         }, 300);
     });
 
-    // clicou fora fecha a lista
     document.addEventListener('click', (e) => {
         if (!inputPesquisaCliente.contains(e.target) && !resultadoClientes.contains(e.target)) {
             resultadoClientes.classList.add('hidden');
         }
     });
 
-// =========================
-// FIM PARTE 1 - prossiga para PARTE 2 abaixo
-
-    // =========================
-    // AUTOCOMPLETE TONER (lista de lotes)
-    // =========================
+    // ====== AUTOCOMPLETE TONER / LOTES ======
     let tonerDebounce;
     inputPesquisaToner && inputPesquisaToner.addEventListener('input', () => {
         clearTimeout(tonerDebounce);
@@ -218,12 +258,13 @@ document.addEventListener("DOMContentLoaded", () => {
                     listaSugestoesToner.classList.remove('hidden');
                     return;
                 }
-                dados.forEach((lote, idx) => {
+                dados.forEach(lote => {
                     const div = document.createElement('div');
                     div.className = "px-3 py-2 cursor-pointer hover:bg-gray-100";
-                    div.innerHTML = `<div class="font-semibold">${lote.Marca} - ${lote.Modelo} (${lote.Tipo || ''})</div>
-                           <div class="text-sm text-gray-600">Compra #${lote.Cod_Compra} — Saldo: ${lote.Saldo}</div>
-                           <div class="text-sm text-gray-600">Valor compra: R$ ${Number(lote.Valor_Compra).toFixed(2)}</div>`;
+                    div.innerHTML = `
+                        <div class="font-semibold">${lote.Marca} - ${lote.Modelo} (${lote.Tipo || ''})</div>
+                        <div class="text-sm text-gray-600">Compra #${lote.Cod_Compra} — Saldo: ${lote.Saldo}</div>
+                        <div class="text-sm text-gray-600">Valor compra: R$ ${Number(lote.Valor_Compra).toFixed(2)}</div>`;
                     div.addEventListener('click', () => {
                         loteSelecionado = lote;
                         inputPesquisaToner.value = `${lote.Marca} - ${lote.Modelo} (${lote.Tipo || ''}) - Saldo: ${lote.Saldo}`;
@@ -245,18 +286,16 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     });
 
-    // =========================
-    // ADICIONAR ITEM AO CARRINHO (mantendo Id_ItemCompra)
-    // =========================
+    // ====== ADICIONAR ITEM AO CARRINHO ======
     btnAdicionarItem && btnAdicionarItem.addEventListener('click', () => {
-        if (!loteSelecionado) return alert('Selecione um toner (lote) válido do estoque.');
+        if (!loteSelecionado) return alert('Selecione um toner válido.');
 
-        const qtd = Number(inputQtd.value) || 0;
-        const valorVenda = Number(inputValor.value) || 0;
+        const qtd = Number(inputQtd.value);
+        const valorVenda = Number(inputValor.value);
 
         if (qtd <= 0) return alert('Quantidade inválida.');
-        if (qtd > loteSelecionado.Saldo) return alert(`Saldo insuficiente. Saldo disponível: ${loteSelecionado.Saldo}`);
-        if (valorVenda <= 0) return alert('Informe um valor de venda válido.');
+        if (qtd > loteSelecionado.Saldo) return alert(`Saldo insuficiente: ${loteSelecionado.Saldo}`);
+        if (valorVenda <= 0) return alert('Informe um valor válido.');
 
         const subtotal = round2(qtd * valorVenda);
 
@@ -265,76 +304,66 @@ document.addEventListener("DOMContentLoaded", () => {
             Id_ItemCompra: loteSelecionado.Id_ItemCompra,
             Nome_Produto: `${loteSelecionado.Marca} - ${loteSelecionado.Modelo}`,
             Quantidade: qtd,
-            Valor_Compra: Number(loteSelecionado.Valor_Compra) || 0,
+            Valor_Compra: Number(loteSelecionado.Valor_Compra),
             Valor_Venda: round2(valorVenda),
             Subtotal: subtotal
         });
 
-        // reset
         loteSelecionado = null;
         inputPesquisaToner.value = '';
-        selectTonerHidden.value = '';
-        listaSugestoesToner.innerHTML = '';
-        listaSugestoesToner.classList.add('hidden');
         inputQtd.value = '';
         inputValor.value = '';
-
         atualizarCarrinho();
     });
 
-    // atualizar carrinho UI
     function atualizarCarrinho() {
         tbodyCarrinho.innerHTML = '';
         let total = 0;
         carrinho.forEach((it, idx) => {
-            const tr = document.createElement('tr');
-            tr.innerHTML = `<td class="py-2 px-3">${it.Nome_Produto}</td>
-                      <td class="py-2 px-3 text-center">${it.Quantidade}</td>
-                      <td class="py-2 px-3 text-center">${fmtBRL(it.Valor_Venda)}</td>
-                      <td class="py-2 px-3 text-center font-semibold">${fmtBRL(it.Subtotal)}</td>
-                      <td class="py-2 px-3 text-center">
+            tbodyCarrinho.insertAdjacentHTML("beforeend", `
+                <tr>
+                    <td class="py-2 px-3">${it.Nome_Produto}</td>
+                    <td class="py-2 px-3 text-center">${it.Quantidade}</td>
+                    <td class="py-2 px-3 text-center">${fmtBRL(it.Valor_Venda)}</td>
+                    <td class="py-2 px-3 text-center font-semibold">${fmtBRL(it.Subtotal)}</td>
+                    <td class="py-2 px-3 text-center">
                         <button data-idx="${idx}" class="btnRemoverItem text-red-500 hover:text-red-700">
-                          <i class='bx bx-trash'></i>
+                            <i class='bx bx-trash'></i>
                         </button>
-                      </td>`;
-            tbodyCarrinho.appendChild(tr);
-            total += Number(it.Subtotal);
+                    </td>
+                </tr>
+            `);
+            total += it.Subtotal;
         });
         totalVendaEl.textContent = fmtBRL(total);
     }
 
-    // remover item delegado
     tbodyCarrinho.addEventListener('click', (e) => {
         const btn = e.target.closest('.btnRemoverItem');
         if (!btn) return;
-        const idx = Number(btn.dataset.idx);
+        const idx = btn.dataset.idx;
         carrinho.splice(idx, 1);
         atualizarCarrinho();
     });
 
-    // =========================
-    // FINANCEIRO (recebimento) - adicionar parcela
-    // =========================
+    // ====== FINANCEIRO ======
     btnAddParcela && btnAddParcela.addEventListener('click', () => {
         const ven = lancVencimento.value;
         const val = Number(lancValor.value);
-        const ean = lancEAN.value || '';
-        const obs = lancObs.value || '';
 
-        if (!ven) return alert('Informe data de vencimento.');
-        if (isNaN(val) || val <= 0) return alert('Informe um valor válido (> 0).');
+        if (!ven) return alert('Informe data.');
+        if (val <= 0) return alert('Valor inválido.');
 
         listaFinanceiro.push({
             vencimento: ven,
             valor: round2(val),
-            ean,
-            obs,
+            ean: lancEAN.value || '',
+            obs: lancObs.value || '',
             conta: null,
-            tipo: 2,      // 2 = venda
-            operacao: 2  // 2 = venda
+            tipo: 2,
+            operacao: 2
         });
 
-        // limpa campos
         lancVencimento.value = '';
         lancValor.value = '';
         lancEAN.value = '';
@@ -347,96 +376,78 @@ document.addEventListener("DOMContentLoaded", () => {
         tbodyFinanceiro.innerHTML = '';
         let total = 0;
         listaFinanceiro.forEach((f, idx) => {
-            const tr = document.createElement('tr');
-            tr.innerHTML = `<td class="py-2 px-3">${f.vencimento}</td>
-                      <td class="py-2 px-3">${Number(f.valor).toFixed(2)}</td>
-                      <td class="py-2 px-3">${f.ean || ''}</td>
-                      <td class="py-2 px-3">${f.obs || ''}</td>
-                      <td class="py-2 px-3 text-center">
+            tbodyFinanceiro.insertAdjacentHTML("beforeend", `
+                <tr>
+                    <td class="py-2 px-3">${f.vencimento}</td>
+                    <td class="py-2 px-3">${f.valor.toFixed(2)}</td>
+                    <td class="py-2 px-3">${f.ean}</td>
+                    <td class="py-2 px-3">${f.obs}</td>
+                    <td class="py-2 px-3 text-center">
                         <button data-idx="${idx}" class="btnRemoverParcela text-red-500 hover:text-red-700">
-                          <i class='bx bx-trash'></i>
+                            <i class='bx bx-trash'></i>
                         </button>
-                      </td>`;
-            tbodyFinanceiro.appendChild(tr);
-            total += Number(f.valor);
+                    </td>
+                </tr>
+            `);
+            total += f.valor;
         });
         totalFinanceiroEl.textContent = fmtBRL(total);
     }
 
-    // remover parcela delegado
-    tbodyFinanceiro.addEventListener('click', (e) => {
+    tbodyFinanceiro.addEventListener('click', e => {
         const btn = e.target.closest('.btnRemoverParcela');
         if (!btn) return;
-        const idx = Number(btn.dataset.idx);
+        const idx = btn.dataset.idx;
         listaFinanceiro.splice(idx, 1);
         atualizarTabelaFinanceiro();
     });
 
-    // =========================
-    // SALVAR VENDA (VALIDAÇÕES & POST)
-    // =========================
-    btnSalvarVenda && btnSalvarVenda.addEventListener('click', async () => {
-        const Cod_Cliente = Number(clienteSelecionadoHidden.value) || null;
-        const NDoc = inputDocumento.value || '';
-        const Cond_Pagamento = inputCondPgto.value || '';
-        const Obs = inputObs.value || '';
+    // ====== SALVAR VENDA ======
+    btnSalvarVenda.addEventListener('click', async () => {
+        const Cod_Cliente = Number(clienteSelecionadoHidden.value);
+        if (!Cod_Cliente) return alert("Selecione um cliente.");
+        if (!carrinho.length) return alert("Adicione itens.");
 
-        if (!Cod_Cliente) return alert('Selecione um cliente.');
-        if (!carrinho.length) return alert('Adicione ao menos um item.');
+        const totalVenda = round2(carrinho.reduce((s,i)=>s+i.Subtotal,0));
+        const totalFin = round2(listaFinanceiro.reduce((s,f)=>s+f.valor,0));
 
-        const totalVenda = round2(carrinho.reduce((s, it) => s + Number(it.Subtotal), 0));
-        const totalFin = round2(listaFinanceiro.reduce((s, f) => s + Number(f.valor), 0));
+        if (totalFin !== totalVenda) return alert("O total financeiro não confere com o total da venda.");
 
-        if (totalFin <= 0) return alert('Você precisa adicionar ao menos um título (valor > 0).');
-
-        if (Number(totalVenda.toFixed(2)) !== Number(totalFin.toFixed(2))) {
-            return alert('O total financeiro não confere com o valor total da venda. Verifique os valores.');
-        }
-
-        // montar payload - itens com campos esperados
         const payload = {
             Cod_Cliente,
-            NDoc,
-            Cond_Pagamento,
-            Obs,
+            NDoc: inputDocumento.value,
+            Cond_Pagamento: inputCondPgto.value,
+            Obs: inputObs.value,
             itens: carrinho.map(it => ({
                 cod_toner: it.Cod_Toner,
                 id_itemcompra: it.Id_ItemCompra,
                 quantidade: it.Quantidade,
-                valor_compra: Number(it.Valor_Compra),
-                valor_venda: Number(it.Valor_Venda)
+                valor_compra: it.Valor_Compra,
+                valor_venda: it.Valor_Venda
             })),
-            financeiro: listaFinanceiro.map(f => ({
-                vencimento: f.vencimento,
-                valor: f.valor,
-                ean: f.ean,
-                obs: f.obs,
-                conta: f.conta || null,
-                tipo: f.tipo,
-                operacao: f.operacao
-            }))
+            financeiro: listaFinanceiro
         };
 
         try {
             const resp = await fetch('/vendas/finalizar', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
+                method:"POST",
+                headers:{"Content-Type":"application/json"},
+                body:JSON.stringify(payload)
             });
             const json = await resp.json();
-            if (!resp.ok) {
-                return alert(json.error || 'Erro ao registrar venda.');
-            }
 
-            alert('Venda registrada com sucesso! Cod_Pedido: ' + (json.Cod_Pedido || '—'));
+            if (!resp.ok) return alert(json.error || "Erro ao salvar venda.");
+
+            alert("Venda registrada! Código: "+ json.Cod_Pedido);
             limparEstado();
-            modalBg.classList.add('hidden');
+            modalBg.classList.add("hidden");
             listarVendas();
-        } catch (err) {
-            console.error('Erro ao salvar venda', err);
-            alert('Erro de conexão ao salvar venda.');
-        }
-    });
 
+        } catch (err) {
+            console.error(err);
+            alert("Erro ao conectar ao servidor.");
+        }
+
+    });
 
 }); // DOMContentLoaded end
