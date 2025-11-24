@@ -41,17 +41,19 @@ module.exports = {
             const result = await pool.request()
                 .input("codigo", codigo)
                 .query(`
-                    SELECT 
+                    SELECT
                         P.Cod_Pedido,
                         FORMAT(P.Data, 'dd/MM/yyyy') AS Data,
                         C.Nome AS Cliente,
                         T.Modelo,
                         PI.Quantidade,
-                        FORMAT(P.Valor_Total, 'N2') AS Valor_Total
+                        PI.Valor_Venda,      -- VALOR DO ITEM (NECESSÁRIO)
+                        PI.Valor_Compra,     -- opcional
+                        (PI.Quantidade * PI.Valor_Venda) AS SubtotalItem
                     FROM Tbl_PedidosItens PI
-                    LEFT JOIN Tbl_Pedidos P ON PI.Cod_Pedido = P.Cod_Pedido
-                    LEFT JOIN Tbl_Clientes C ON P.Cod_Cliente = C.Id_Cliente
-                    LEFT JOIN Tbl_Toner T ON PI.Cod_Toner = T.Cod_Produto
+                             LEFT JOIN Tbl_Pedidos P ON PI.Cod_Pedido = P.Cod_Pedido
+                             LEFT JOIN Tbl_Clientes C ON P.Cod_Cliente = C.Id_Cliente
+                             LEFT JOIN Tbl_Toner T ON PI.Cod_Toner = T.Cod_Produto
                     WHERE P.Cod_Pedido = @codigo
                     ORDER BY T.Modelo
                 `);

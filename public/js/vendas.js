@@ -159,34 +159,41 @@ document.addEventListener("DOMContentLoaded", () => {
                 const resp = await fetch(`/vendas/pesquisar/${codigo}`);
                 const dados = await resp.json();
 
+                tabelaPesquisa.innerHTML = "";
+                resultadoPesquisa.classList.remove("hidden");
+
                 if (!dados || dados.length === 0) {
-                    resultadoPesquisa.classList.remove("hidden");
                     tabelaPesquisa.innerHTML = `
-                    <tr><td colspan="6" class="py-2 text-center text-gray-500">
-                        Nenhum pedido encontrado.
-                    </td></tr>`;
-                                return;
-                            }
+                <tr><td colspan="6" class="py-2 text-center text-gray-500">
+                    Nenhum pedido encontrado.
+                </td></tr>`;
+                    return;
+                }
 
-            // ← garantir que a div aparece
-                            resultadoPesquisa.classList.remove("hidden");
+                let totalGeral = 0;
 
-            // limpar resultados anteriores
-                            tabelaPesquisa.innerHTML = "";
+                dados.forEach(item => {
+                    const subtotal = Number(item.Valor_Venda) * Number(item.Quantidade);
+                    totalGeral += subtotal;
 
-            // adicionar linhas
-                            dados.forEach(item => {
-                                tabelaPesquisa.innerHTML += `
-                    <tr class="border-b">
-                        <td class="py-2 px-3">${item.Cod_Pedido}</td>
-                        <td class="py-2 px-3">${item.Data}</td>
-                        <td class="py-2 px-3">${item.Cliente}</td>
-                        <td class="py-2 px-3">${item.Modelo}</td>
-                        <td class="py-2 px-3">${item.Quantidade}</td>
-                        <td class="py-2 px-3">R$ ${item.Valor_Total}</td>
-                    </tr>`;
+                    tabelaPesquisa.innerHTML += `
+                <tr class="border-b">
+                    <td class="py-2 px-3">${item.Cod_Pedido}</td>
+                    <td class="py-2 px-3">${item.Data}</td>
+                    <td class="py-2 px-3">${item.Cliente}</td>
+                    <td class="py-2 px-3">${item.Modelo}</td>
+                    <td class="py-2 px-3">${item.Quantidade}</td>
+                    <td class="py-2 px-3">R$ ${subtotal.toFixed(2)}</td>
+                </tr>`;
                 });
 
+                // RODAPÉ - TOTAL GERAL
+                tabelaPesquisa.innerHTML += `
+            <tr class="border-t bg-gray-50 font-semibold">
+                <td colspan="5" class="py-2 px-3 text-right">TOTAL GERAL:</td>
+                <td class="py-2 px-3 text-green-600">R$ ${totalGeral.toFixed(2)}</td>
+            </tr>
+        `;
 
             } catch (e) {
                 alert("Erro ao pesquisar pedido!");
