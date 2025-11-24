@@ -1,4 +1,8 @@
 module.exports = {
+
+    // ===========================================
+    //  LISTAR ÚLTIMAS 10 VENDAS
+    // ===========================================
     listar: async (req, res) => {
         const pool = req.app.get("db");
 
@@ -7,11 +11,11 @@ module.exports = {
                 SELECT TOP 10 
                     P.Cod_Pedido,
                     P.Data,
-                       C.Nome AS Nome_Cliente,
-                       P.Valor_Total,
-                       P.NDoc
+                    C.Nome AS Nome_Cliente,
+                    P.Valor_Total,
+                    P.NDoc
                 FROM Tbl_Pedidos P
-                         LEFT JOIN Tbl_Clientes C ON P.Cod_Cliente = C.Id_Cliente
+                LEFT JOIN Tbl_Clientes C ON P.Cod_Cliente = C.Id_Cliente
                 ORDER BY P.Cod_Pedido DESC
             `);
 
@@ -23,6 +27,46 @@ module.exports = {
         }
     },
 
+    // ===========================================
+    //  PESQUISAR PEDIDO POR CÓDIGO
+    // ===========================================
+    pesquisar: async (req, res) => {
+        const pool = req.app.get("db");
+        const codigo = req.params.codigo;
+
+        if (!codigo)
+            return res.status(400).json({ error: "Código do pedido não informado." });
+
+        try {
+            const result = await pool.request()
+                .input("codigo", codigo)
+                .query(`
+                    SELECT 
+                        P.Cod_Pedido,
+                        FORMAT(P.Data, 'dd/MM/yyyy') AS Data,
+                        C.Nome AS Cliente,
+                        T.Modelo,
+                        PI.Quantidade,
+                        FORMAT(P.Valor_Total, 'N2') AS Valor_Total
+                    FROM Tbl_PedidosItens PI
+                    LEFT JOIN Tbl_Pedidos P ON PI.Cod_Pedido = P.Cod_Pedido
+                    LEFT JOIN Tbl_Clientes C ON P.Cod_Cliente = C.Id_Cliente
+                    LEFT JOIN Tbl_Toner T ON PI.Cod_Toner = T.Cod_Produto
+                    WHERE P.Cod_Pedido = @codigo
+                    ORDER BY T.Modelo
+                `);
+
+            res.json(result.recordset);
+
+        } catch (err) {
+            console.error("Erro ao pesquisar pedido:", err);
+            res.status(500).json({ error: "Erro ao pesquisar pedido." });
+        }
+    },
+
+    // ===========================================
+    //  FINALIZAR VENDA (COMPLETA)
+    // ===========================================
     finalizar: async (req, res) => {
         const pool = req.app.get("db");
         const sql = req.app.get("sql");
@@ -35,9 +79,14 @@ module.exports = {
         if (!financeiro || financeiro.length === 0)
             return res.status(400).json({ error: "Nenhum lançamento financeiro informado." });
 
-        // === calcular totais
-        const totalVenda = itens.reduce((s, it) => s + (Number(it.valor_venda) * Number(it.quantidade)), 0);
-        const totalFinanceiro = financeiro.reduce((s, f) => s + Number(f.valor), 0);
+        // === calcular totais ===
+        const totalVenda = itens.reduce(
+            (s, it) => s + (Number(it.valor_venda) * Number(it.quantidade)), 0
+        );
+
+        const totalFinanceiro = financeiro.reduce(
+            (s, f) => s + Number(f.valor), 0
+        );
 
         if (Number(totalVenda.toFixed(2)) !== Number(totalFinanceiro.toFixed(2))) {
             return res.status(400).json({
@@ -50,7 +99,9 @@ module.exports = {
         try {
             await transaction.begin();
 
-            // 1) Inserir PEDIDO
+            // =====================================
+            // 1) Inserir pedido
+            // =====================================
             const pedidoResult = await transaction.request()
                 .input("Data", sql.DateTime, new Date())
                 .input("Cod_Cliente", sql.Int, Cod_Cliente)
@@ -73,7 +124,9 @@ module.exports = {
             let totalCusto = 0;
             let totalLucro = 0;
 
-            // 2) Inserir itens da venda (usando o lote correto enviado pelo front-end)
+            // =====================================
+            // 2) Inserir itens
+            // =====================================
             for (const it of itens) {
                 const valorCompra = Number(it.valor_compra);
                 const valorVenda = Number(it.valor_venda);
@@ -110,7 +163,9 @@ module.exports = {
                 totalLucro += valorLucro;
             }
 
+            // =====================================
             // 3) Atualizar totais do pedido
+            // =====================================
             await transaction.request()
                 .input("Cod_Pedido", sql.Int, Cod_Pedido)
                 .input("Custo_Total", sql.Decimal(18, 2), totalCusto)
@@ -122,11 +177,13 @@ module.exports = {
                     WHERE Cod_Pedido = @Cod_Pedido
                 `);
 
-            // 4) Inserir contas a receber (financeiro)
+            // =====================================
+            // 4) Inserir financeiro (contas a receber)
+            // =====================================
             for (const fin of financeiro) {
                 await transaction.request()
-                    .input("Tipo", sql.Int, fin.tipo)   // 2 = venda
-                    .input("Operacao", sql.Int, fin.operacao) // 2 = venda
+                    .input("Tipo", sql.Int, fin.tipo)
+                    .input("Operacao", sql.Int, fin.operacao)
                     .input("Id_Operacao", sql.Int, Cod_Pedido)
                     .input("Data_Vencimento", sql.DateTime, new Date(fin.vencimento))
                     .input("Valor", sql.Decimal(18, 2), fin.valor)
