@@ -3,16 +3,17 @@ module.exports = {
         const pool = req.app.get("db");
         const sql = req.app.get("sql");
 
-        const { modelo, marca, tipo } = req.body;
+        const { modelo, marca, tipo, locacao } = req.body;
 
         try {
             await pool.request()
                 .input("modelo", sql.VarChar(50), modelo)
                 .input("marca", sql.VarChar(50), marca)
                 .input("tipo", sql.VarChar(50), tipo)
+                .input("locacao", sql.Bit, locacao)
                 .query(`
-                    INSERT INTO Tbl_Toner (Modelo, Marca, Tipo)
-                    VALUES (@modelo, @marca, @tipo)
+                    INSERT INTO Tbl_Toner (Modelo, Marca, Tipo, Locacao)
+                    VALUES (@modelo, @marca, @tipo, @locacao)
                 `);
 
             res.status(201).json({ message: "Toner cadastrado com sucesso!" });
@@ -134,7 +135,7 @@ module.exports = {
         const sql = req.app.get("sql");
 
         const { Cod_Produto } = req.params;
-        const { modelo, marca, tipo } = req.body;
+        const { modelo, marca, tipo, locacao } = req.body;
 
         try {
             const result = await pool.request()
@@ -142,11 +143,13 @@ module.exports = {
                 .input("modelo", sql.VarChar(50), modelo)
                 .input("marca", sql.VarChar(50), marca)
                 .input("tipo", sql.VarChar(50), tipo)
+                .input("locacao", sql.Bit, locacao)
                 .query(`
                     UPDATE Tbl_Toner
                     SET Modelo = @modelo,
                         Marca = @marca,
-                        Tipo = @tipo
+                        Tipo = @tipo,
+                        Locacao = @locacao
                     WHERE Cod_Produto = @Cod_Produto
                 `);
 

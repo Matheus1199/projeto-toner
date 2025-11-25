@@ -19,6 +19,7 @@ document.addEventListener("DOMContentLoaded", () => {
         document.getElementById("modelo").value = "";
         document.getElementById("marca").value = "";
         document.getElementById("tipo").value = "";
+        document.getElementById("locacao").checked = false;
         modal.classList.remove("hidden");
     };
 
@@ -31,7 +32,8 @@ document.addEventListener("DOMContentLoaded", () => {
         const dados = {
             modelo: document.getElementById("modelo").value,
             marca: document.getElementById("marca").value,
-            tipo: document.getElementById("tipo").value
+            tipo: document.getElementById("tipo").value,
+            locacao: document.getElementById("locacao").checked ? 1 : 0
         };
 
         const url = id ? `/toners/${id}` : "/toners";
