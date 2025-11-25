@@ -36,30 +36,17 @@ module.exports = {
 
         try {
             const q = `
-                WITH ClientesLocacao AS (
-                    SELECT Id_Cliente FROM Tbl_Clientes WHERE Tipo = 4
-                ),
-                TonersUsados AS (
-                    SELECT DISTINCT PI.Cod_Toner
-                    FROM Tbl_PedidosItens PI
-                    JOIN Tbl_Pedidos P ON PI.Cod_Pedido = P.Cod_Pedido
-                    WHERE P.Cod_Cliente IN (SELECT Id_Cliente FROM ClientesLocacao)
-                ),
-                EstoquePorToner AS (
-                    SELECT Cod_Toner, SUM(Saldo) AS Saldo
-                    FROM Tbl_ComprasItens
-                    GROUP BY Cod_Toner
-                )
                 SELECT
                     T.Cod_Produto,
                     T.Modelo,
                     T.Marca,
-                    ISNULL(E.Saldo, 0) AS Saldo_Disponivel
-                FROM TonersUsados U
-                JOIN Tbl_Toner T ON T.Cod_Produto = U.Cod_Toner
-                LEFT JOIN EstoquePorToner E ON E.Cod_Toner = T.Cod_Produto
-                WHERE E.Saldo > 0
-                ORDER BY ISNULL(E.Saldo, 0) DESC;
+                    ISNULL(SUM(CI.Saldo), 0) AS Saldo_Disponivel
+                FROM Tbl_Toner T
+                         LEFT JOIN Tbl_ComprasItens CI ON CI.Cod_Toner = T.Cod_Produto
+                WHERE T.Locacao = 1              -- ⭐ Agora filtramos direto
+                GROUP BY T.Cod_Produto, T.Modelo, T.Marca
+                HAVING ISNULL(SUM(CI.Saldo), 0) > 0
+                ORDER BY Saldo_Disponivel DESC;
             `;
 
             const result = await pool.request().query(q);
