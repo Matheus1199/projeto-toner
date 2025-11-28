@@ -10,11 +10,7 @@ async function carregarDashboard() {
         const valorEstoque = Number(data.valorEstoque || 0);
         const vendasMes = Number(data.vendasMes || 0);
         const qtdVendasMes = Number(data.qtdVendasMes || 0);
-        const vendasTotais = Number(data.vendasTotais || 0);
-        const alertasEstoque = Number(data.alertasEstoque || 0);
-        const totalClientes = Number(data.totalClientes || 0);
-        const totalFornecedores = Number(data.totalFornecedores || 0);
-
+        
         // Atualiza DOM (verifique se os ids existem no HTML)
         const maybeSetText = (id, text) => {
             const el = document.getElementById(id);
@@ -26,11 +22,7 @@ async function carregarDashboard() {
         maybeSetText('valorEstoqueValue', `R$ ${valorEstoque.toFixed(2)}`);
         maybeSetText('vendasMesValue', `R$ ${vendasMes.toFixed(2)}`);
         maybeSetText('qtdVendasMes', `${qtdVendasMes} vendas`);
-        maybeSetText('alertasEstoqueValue', alertasEstoque);
-        maybeSetText('totalClientes', totalClientes);
-        maybeSetText('totalFornecedores', totalFornecedores);
-        maybeSetText('vendasTotaisValue', `R$ ${vendasTotais.toFixed(2)}`);
-
+        
         // opcional: formatar milhares (pt-BR)
         const fmt = (n) => n.toLocaleString('pt-BR');
 
