@@ -26,10 +26,10 @@ document.addEventListener("DOMContentLoaded", () => {
             <tr class="border">
                 <td>${rec.Id_Lancamento}</td>
                 <td>${fmtData(rec.Data)}</td>
-                <td>-</td> <!-- NÃO EXISTE CLIENTE EM Tbl_PagRec -->
-                <td>-</td> <!-- NÃO EXISTE DOCUMENTO EM Tbl_PagRec -->
+                <td>${rec.Cliente}</td> 
+                <td>${rec.Documento}</td>
                 <td>${fmtValor(rec.Valor)}</td>
-                <td>-</td> <!-- Tbl_PagRec NÃO TEM Cond_Pagamento -->
+                <td>${rec.Cond_Pagamento}</td> 
             </tr>
         `;
     });
@@ -43,7 +43,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 <td>${pag.Id_Lancamento}</td>
                 <td>${fmtData(pag.Data)}</td>
                 <td>${pag.Fornecedor ?? "-"}</td>
-                <td>${pag.NDocumento ?? "-"}</td>
+                <td>${pag.Documento ?? "-"}</td>
                 <td>${fmtValor(pag.Valor)}</td>
                 <td>${pag.Cond_Pagamento ?? "-"}</td>
             </tr>
