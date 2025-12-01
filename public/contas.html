@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contas - TonerStock</title>
+
+    <!-- Tailwind -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Boxicons -->
+    <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
+
+    <!-- Script global -->
+    <script src="/js/global.js" defer></script>
+</head>
+<body class="bg-gray-100">
+
+    <!-- SIDEBAR LATERAL -->
+    <aside class="w-64 bg-white shadow-md flex flex-col fixed h-full">
+        <div class="flex items-center gap-2 px-6 py-4 border-b">
+            <h1 class="text-xl font-bold text-gray-700">Sistema de toner</h1>
+        </div>
+
+        <nav class="flex-1 mt-4">
+            <ul class="space-y-1">
+
+                <li><a href="dashboard.html" class="flex items-center px-6 py-3 text-gray-600 hover:bg-gray-100"><i class='bx bxs-dashboard text-xl mr-3'></i> Dashboard</a></li>
+
+                <li><a href="toners.html" class="flex items-center px-6 py-3 text-gray-600 hover:bg-gray-100"><i class='bx bxs-printer text-xl mr-3'></i> Toners</a></li>
+
+                <li><a href="clientes.html" class="flex items-center px-6 py-3 text-gray-600 hover:bg-gray-100"><i class='bx bxs-user text-xl mr-3'></i> Clientes</a></li>
+
+                <li><a href="fornecedores.html" class="flex items-center px-6 py-3 text-gray-600 hover:bg-gray-100"><i class='bx bxs-truck text-xl mr-3'></i> Fornecedores</a></li>
+
+                <li><a href="vendas.html" class="flex items-center px-6 py-3 text-gray-600 hover:bg-gray-100"><i class='bx bxs-cart text-xl mr-3'></i> Vendas</a></li>
+
+                <li><a href="compras.html" class="flex items-center px-6 py-3 text-gray-600 hover:bg-gray-100"><i class='bx bxs-basket text-xl mr-3'></i> Compras</a></li>
+
+                <li><a href="pagrec.html" class="flex items-center px-6 py-3 text-gray-600 hover:bg-gray-100"><i class='bx bxs-wallet text-xl mr-3'></i> Pagamentos / Recebimentos</a></li>
+
+                <!-- 🔵 ITEM DA PÁGINA DE CONTAS -->
+                <li>
+                    <a href="contas.html" class="flex items-center px-6 py-3 text-blue-600 bg-blue-50 border-r-4 border-blue-600 font-medium">
+                        <i class='bx bxs-bank text-xl mr-3'></i> Contas
+                    </a>
+                </li>
+
+            </ul>
+        </nav>
+    </aside>
+
+    <!-- CONTEÚDO PRINCIPAL -->
+    <div class="ml-64 p-6">
+
+        <div class="flex justify-between items-center mb-4">
+            <h1 class="text-2xl font-bold text-gray-700">Contas</h1>
+
+            <button onclick="openModal()"
+                class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded shadow flex items-center gap-2">
+                <i class='bx bx-plus'></i> Novo Lançamento
+            </button>
+        </div>
+
+        <!-- Tabela -->
+        <div class="bg-white rounded shadow p-4 overflow-x-auto">
+            <table class="w-full min-w-[700px]">
+                <thead>
+                    <tr class="bg-gray-200 text-left">
+                        <th class="p-2">ID</th>
+                        <th class="p-2">Nome</th>
+                        <th class="p-2">Saldo</th>
+                        <th class="p-2">Empresa</th>
+                        <th class="p-2">Ativo</th>
+                        <th class="p-2">Atualização</th>
+                    </tr>
+                </thead>
+                <tbody id="tabelaContas"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- MODAL -->
+    <div id="modalLancamento" class="fixed inset-0 bg-black bg-opacity-40 hidden justify-center items-center">
+        <div class="bg-white w-11/12 max-w-lg p-6 rounded shadow relative">
+
+            <button onclick="closeModal()" class="absolute top-3 right-3 text-gray-500 hover:text-black">
+                <i class='bx bx-x text-2xl'></i>
+            </button>
+
+            <h2 class="text-xl font-semibold mb-4">Novo Lançamento Manual</h2>
+
+            <form id="formLancamento" class="space-y-4">
+
+                <div>
+                    <label class="font-medium">Conta:</label>
+                    <select id="conta" class="w-full border p-2 rounded" required></select>
+                </div>
+
+                <div>
+                    <label class="font-medium">Valor:</label>
+                    <input type="number" step="0.01" id="valor" class="w-full border p-2 rounded" required>
+                </div>
+
+                <div>
+                    <label class="font-medium">Operação:</label>
+                    <select id="operacao" class="w-full border p-2 rounded" required>
+                        <option value="1">Crédito</option>
+                        <option value="2">Débito</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="font-medium">Observação:</label>
+                    <textarea id="obs" class="w-full border p-2 rounded" rows="3"></textarea>
+                </div>
+
+                <button type="submit"
+                    class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded shadow w-full">
+                    Salvar Lançamento
+                </button>
+
+            </form>
+        </div>
+    </div>
+    <script src="/js/contas.js"></script>
+</body>
+</html>

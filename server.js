@@ -33,6 +33,8 @@ app.use("/compras", require("./public/routes/compras.routes"));
 app.use("/vendas", require("./public/routes/vendas.routes"));
 app.use("/estoque", require("./public/routes/estoque.routes"));
 app.use("/pagrec", require("./public/routes/pagrec.routes"));
+app.use("/contas", require("./public/routes/contas.routes"));
+
 
 const PORT = 3000;
 app.listen(PORT, () => console.log(`Servidor rodando em http://localhost:${PORT}`));
