@@ -52,5 +52,68 @@ module.exports = {
             console.error(error);
             return res.status(500).json({ error: "Erro ao listar PagRec" });
         }
+    },
+
+    excluir: async (req, res) => {
+    const pool = req.app.get("db");
+    const { id } = req.params;
+
+    try {
+        await pool.request()
+            .input("id", id)
+            .query("DELETE FROM Tbl_PagRec WHERE Id_Lancamento = @id");
+
+        res.json({ sucesso: true });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ erro: "Erro ao excluir lançamento." });
+        }
+    },
+
+    buscarPorId: async (req, res) => {
+    const pool = req.app.get("db");
+    const { id } = req.params;
+
+    try {
+        const result = await pool.request()
+            .input("id", id)
+            .query(`
+                SELECT *
+                FROM Tbl_PagRec
+                WHERE Id_Lancamento = @id
+            `);
+
+        res.json(result.recordset[0]);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ erro: "Erro ao buscar lançamento." });
+        }
+    },
+
+    editar: async (req, res) => {
+    const pool = req.app.get("db");
+    const { id } = req.params;
+    const dados = req.body;
+
+    try {
+        await pool.request()
+            .input("id", id)
+            .input("data", dados.Data_Vencimento)
+            .input("valor", dados.Valor)
+            .input("obs", dados.Obs)
+            .query(`
+                UPDATE Tbl_PagRec
+                SET 
+                    Data_Vencimento = @data,
+                    Valor = @valor,
+                    Obs = @obs
+                WHERE Id_Lancamento = @id
+            `);
+
+        res.json({ sucesso: true });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ erro: "Erro ao editar lançamento." });
+        }
     }
 };
