@@ -19,6 +19,7 @@ module.exports = {
                 FROM Tbl_PagRec PR
                 WHERE PR.Tipo = 1
                   AND PR.Operacao = 1
+                  AND PR.Baixa = 0
                 ORDER BY PR.Data_Vencimento DESC;
             `);
 
@@ -33,19 +34,11 @@ module.exports = {
                     PR.Conta,
                     PR.Valor_Baixa,
                     PR.Data_Baixa,
-                    PR.Baixa,
-                    Cmp.Cod_Compra,
-                    Cmp.Data_Compra,
-                    Cmp.NDocumento,
-                    Cmp.Valor_Total AS Valor_Compra,
-                    F.Nome AS Fornecedor
+                    PR.Baixa
                 FROM Tbl_PagRec PR
-                INNER JOIN Tbl_Compras Cmp 
-                        ON Cmp.Cod_Compra = PR.Id_Operacao
-                INNER JOIN Tbl_Fornecedores F
-                        ON F.Id_Fornecedor = Cmp.Cod_Fornecedor
                 WHERE PR.Tipo = 2
                   AND PR.Operacao = 2
+                  AND PR.Baixa = 0
                 ORDER BY PR.Data_Vencimento DESC;
             `);
 
