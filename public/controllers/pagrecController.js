@@ -8,37 +8,38 @@ module.exports = {
             const receber = await pool.request().query(`
                 SELECT
                     PR.Id_Lancamento,
-                    PR.Data_Vencimento,
+                    PR.Data_Vencimento AS Data,
+                    C.Nome AS Cliente,
+                    P.NDoc AS Documento,
                     PR.Valor,
-                    PR.Obs,
-                    PR.EAN,
-                    PR.Conta,
-                    PR.Valor_Baixa,
-                    PR.Data_Baixa,
-                    PR.Baixa
+                    P.Cond_Pagamento
                 FROM Tbl_PagRec PR
-                WHERE PR.Tipo = 1
-                  AND PR.Operacao = 1
-                  AND PR.Baixa = 0
+                INNER JOIN Tbl_Pedidos P
+                        ON P.Cod_Pedido = PR.Id_Operacao
+                INNER JOIN Tbl_Clientes C
+                        ON C.Id_Cliente = P.Cod_Cliente
+                WHERE PR.Tipo = 2
+                AND PR.Operacao = 2
                 ORDER BY PR.Data_Vencimento DESC;
+
             `);
 
             // CONTAS A PAGAR
             const pagar = await pool.request().query(`
                 SELECT
                     PR.Id_Lancamento,
-                    PR.Data_Vencimento,
+                    PR.Data_Vencimento AS Data,
+                    F.Nome AS Fornecedor,
+                    Cmp.NDocumento AS Documento,
                     PR.Valor,
-                    PR.Obs,
-                    PR.EAN,
-                    PR.Conta,
-                    PR.Valor_Baixa,
-                    PR.Data_Baixa,
-                    PR.Baixa
+                    Cmp.Cond_Pagamento
                 FROM Tbl_PagRec PR
-                WHERE PR.Tipo = 2
-                  AND PR.Operacao = 2
-                  AND PR.Baixa = 0
+                INNER JOIN Tbl_Compras Cmp
+                        ON Cmp.Cod_Compra = PR.Id_Operacao
+                INNER JOIN Tbl_Fornecedores F
+                        ON F.Id_Fornecedor = Cmp.Cod_Fornecedor
+                WHERE PR.Tipo = 1
+                AND PR.Operacao = 1
                 ORDER BY PR.Data_Vencimento DESC;
             `);
 

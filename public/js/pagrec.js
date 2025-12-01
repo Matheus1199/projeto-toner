@@ -25,7 +25,7 @@ document.addEventListener("DOMContentLoaded", () => {
         tblReceber.innerHTML += `
             <tr class="border">
                 <td>${rec.Id_Lancamento}</td>
-                <td>${fmtData(rec.Data_Vencimento)}</td>
+                <td>${fmtData(rec.Data)}</td>
                 <td>-</td> <!-- NÃO EXISTE CLIENTE EM Tbl_PagRec -->
                 <td>-</td> <!-- NÃO EXISTE DOCUMENTO EM Tbl_PagRec -->
                 <td>${fmtValor(rec.Valor)}</td>
@@ -41,7 +41,7 @@ document.addEventListener("DOMContentLoaded", () => {
         tblPagar.innerHTML += `
             <tr class="border">
                 <td>${pag.Id_Lancamento}</td>
-                <td>${fmtData(pag.Data_Vencimento)}</td>
+                <td>${fmtData(pag.Data)}</td>
                 <td>${pag.Fornecedor ?? "-"}</td>
                 <td>${pag.NDocumento ?? "-"}</td>
                 <td>${fmtValor(pag.Valor)}</td>
