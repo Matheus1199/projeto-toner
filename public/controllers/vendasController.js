@@ -13,6 +13,7 @@ module.exports = {
                     P.Data,
                     C.Nome AS Nome_Cliente,
                     P.Valor_Total,
+                    P.Valor_Frete,      -- FRETE EXIBIDO
                     P.NDoc
                 FROM Tbl_Pedidos P
                 LEFT JOIN Tbl_Clientes C ON P.Cod_Cliente = C.Id_Cliente
@@ -47,13 +48,14 @@ module.exports = {
                         C.Nome AS Cliente,
                         T.Modelo,
                         PI.Quantidade,
-                        PI.Valor_Venda,      -- VALOR DO ITEM (NECESSÁRIO)
-                        PI.Valor_Compra,     -- opcional
-                        (PI.Quantidade * PI.Valor_Venda) AS SubtotalItem
+                        PI.Valor_Venda,
+                        PI.Valor_Compra,
+                        (PI.Quantidade * PI.Valor_Venda) AS SubtotalItem,
+                        P.Valor_Frete
                     FROM Tbl_PedidosItens PI
-                             LEFT JOIN Tbl_Pedidos P ON PI.Cod_Pedido = P.Cod_Pedido
-                             LEFT JOIN Tbl_Clientes C ON P.Cod_Cliente = C.Id_Cliente
-                             LEFT JOIN Tbl_Toner T ON PI.Cod_Toner = T.Cod_Produto
+                    LEFT JOIN Tbl_Pedidos P ON PI.Cod_Pedido = P.Cod_Pedido
+                    LEFT JOIN Tbl_Clientes C ON P.Cod_Cliente = C.Id_Cliente
+                    LEFT JOIN Tbl_Toner T ON PI.Cod_Toner = T.Cod_Produto
                     WHERE P.Cod_Pedido = @codigo
                     ORDER BY T.Modelo
                 `);
@@ -67,13 +69,15 @@ module.exports = {
     },
 
     // ===========================================
-    //  FINALIZAR VENDA (COMPLETA)
+    //  FINALIZAR VENDA (COM FRETE)
     // ===========================================
     finalizar: async (req, res) => {
         const pool = req.app.get("db");
         const sql = req.app.get("sql");
 
-        const { Cod_Cliente, NDoc, Cond_Pagamento, Obs, itens, financeiro } = req.body;
+        const { Cod_Cliente, NDoc, Cond_Pagamento, Obs, itens, financeiro, Valor_Frete } = req.body;
+
+        const frete = Number(Valor_Frete || 0);
 
         if (!itens || itens.length === 0)
             return res.status(400).json({ error: "Nenhum item informado." });
@@ -81,18 +85,22 @@ module.exports = {
         if (!financeiro || financeiro.length === 0)
             return res.status(400).json({ error: "Nenhum lançamento financeiro informado." });
 
-        // === calcular totais ===
-        const totalVenda = itens.reduce(
+        // === total dos itens ===
+        const totalItens = itens.reduce(
             (s, it) => s + (Number(it.valor_venda) * Number(it.quantidade)), 0
         );
 
+        // === total financeiro ===
         const totalFinanceiro = financeiro.reduce(
             (s, f) => s + Number(f.valor), 0
         );
 
-        if (Number(totalVenda.toFixed(2)) !== Number(totalFinanceiro.toFixed(2))) {
+        // === total final pedido = itens + frete ===
+        const totalVenda = Number((totalItens + frete).toFixed(2));
+
+        if (Number(totalFinanceiro.toFixed(2)) !== Number(totalVenda.toFixed(2))) {
             return res.status(400).json({
-                error: "O total financeiro não confere com o total da venda."
+                error: "O total financeiro deve fechar com TOTAL + FRETE."
             });
         }
 
@@ -102,12 +110,13 @@ module.exports = {
             await transaction.begin();
 
             // =====================================
-            // 1) Inserir pedido
+            // 1) Inserir pedido (agora com campo Valor_Frete)
             // =====================================
             const pedidoResult = await transaction.request()
                 .input("Data", sql.DateTime, new Date())
                 .input("Cod_Cliente", sql.Int, Cod_Cliente)
                 .input("Valor_Total", sql.Decimal(18, 2), totalVenda)
+                .input("Valor_Frete", sql.Decimal(18, 2), frete)
                 .input("Custo_Total", sql.Decimal(18, 2), 0)
                 .input("Lucro_Total", sql.Decimal(18, 2), 0)
                 .input("NDoc", sql.VarChar(50), NDoc || '')
@@ -116,9 +125,9 @@ module.exports = {
                 .input("NF", sql.Bit, 0)
                 .query(`
                     INSERT INTO Tbl_Pedidos
-                    (Data, Cod_Cliente, Valor_Total, Custo_Total, Lucro_Total, NDoc, Cond_Pagamento, Obs, NF)
+                    (Data, Cod_Cliente, Valor_Total, Valor_Frete, Custo_Total, Lucro_Total, NDoc, Cond_Pagamento, Obs, NF)
                     OUTPUT INSERTED.Cod_Pedido
-                    VALUES (@Data, @Cod_Cliente, @Valor_Total, @Custo_Total, @Lucro_Total, @NDoc, @Cond_Pagamento, @Obs, @NF)
+                    VALUES (@Data, @Cod_Cliente, @Valor_Total, @Valor_Frete, @Custo_Total, @Lucro_Total, @NDoc, @Cond_Pagamento, @Obs, @NF)
                 `);
 
             const Cod_Pedido = pedidoResult.recordset[0].Cod_Pedido;
@@ -127,7 +136,7 @@ module.exports = {
             let totalLucro = 0;
 
             // =====================================
-            // 2) Inserir itens
+            // 2) Inserir itens + atualizar estoque
             // =====================================
             for (const it of itens) {
                 const valorCompra = Number(it.valor_compra);
@@ -151,7 +160,6 @@ module.exports = {
                         (@Cod_Pedido, @Cod_Cliente, @Cod_Toner, @Id_ItemCompra, @Quantidade, @Valor_Compra, @Valor_Venda, @Valor_Lucro)
                     `);
 
-                // atualizar saldo do lote
                 await transaction.request()
                     .input("Id_ItemCompra", sql.Int, it.id_itemcompra)
                     .input("Quantidade", sql.Int, quantidade)
@@ -166,7 +174,7 @@ module.exports = {
             }
 
             // =====================================
-            // 3) Atualizar totais do pedido
+            // 3) Atualizar custos/lucro
             // =====================================
             await transaction.request()
                 .input("Cod_Pedido", sql.Int, Cod_Pedido)
@@ -180,7 +188,7 @@ module.exports = {
                 `);
 
             // =====================================
-            // 4) Inserir financeiro (contas a receber)
+            // 4) Lançamentos financeiros (a receber)
             // =====================================
             for (const fin of financeiro) {
                 await transaction.request()
@@ -208,6 +216,7 @@ module.exports = {
             res.json({
                 Cod_Pedido,
                 Valor_Total: totalVenda,
+                Valor_Frete: frete,
                 Custo_Total: totalCusto,
                 Lucro_Total: totalLucro,
                 message: "Venda registrada com sucesso!"

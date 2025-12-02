@@ -40,6 +40,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const inputDocumento = document.getElementById("inputDocumento");
     const inputCondPgto = document.getElementById("inputCondPgto");
     const inputObs = document.getElementById("inputObs");
+    const inputFrete = document.getElementById("inputFrete");
 
     // financeiro DOM
     const lancVencimento = document.getElementById("lancVencimento");
@@ -72,6 +73,7 @@ document.addEventListener("DOMContentLoaded", () => {
         setActiveTab('detalhes');
         setTimeout(()=> inputPesquisaCliente.focus(), 50);
         listarVendas();
+        atualizarTotal();
     });
 
     window.fecharModal = function() {
@@ -100,6 +102,7 @@ document.addEventListener("DOMContentLoaded", () => {
         lancValor.value = '';
         lancEAN.value = '';
         lancObs.value = '';
+        inputFrete.value = 0;
         atualizarCarrinho();
         atualizarTabelaFinanceiro();
     }
@@ -113,6 +116,7 @@ document.addEventListener("DOMContentLoaded", () => {
         if (tabName === 'detalhes') {
             tabDetalhes.classList.remove('hidden');
             tabFinanceiro.classList.add('hidden');
+            atualizarTotal();
         } else {
             tabDetalhes.classList.add('hidden');
             tabFinanceiro.classList.remove('hidden');
@@ -348,6 +352,14 @@ document.addEventListener("DOMContentLoaded", () => {
             total += it.Subtotal;
         });
         totalVendaEl.textContent = fmtBRL(total);
+        atualizarTotal();
+    }
+
+    function atualizarTotal() {
+    const totalItens = carrinho.reduce((s, i) => s + i.Subtotal, 0);
+    const frete = Number(inputFrete.value) || 0;
+
+    totalVendaEl.textContent = fmtBRL(totalItens + frete);
     }
 
     tbodyCarrinho.addEventListener('click', (e) => {
@@ -423,13 +435,17 @@ document.addEventListener("DOMContentLoaded", () => {
         const totalVenda = round2(carrinho.reduce((s,i)=>s+i.Subtotal,0));
         const totalFin = round2(listaFinanceiro.reduce((s,f)=>s+f.valor,0));
 
-        if (totalFin !== totalVenda) return alert("O total financeiro não confere com o total da venda.");
+        const totalComFrete = round2(totalVenda + (Number(inputFrete.value) || 0));
+
+        if (totalFin !== totalComFrete) 
+            return alert("O total financeiro deve fechar com TOTAL + FRETE.");
 
         const payload = {
             Cod_Cliente,
             NDoc: inputDocumento.value,
             Cond_Pagamento: inputCondPgto.value,
             Obs: inputObs.value,
+            Valor_Frete: Number(inputFrete.value) || 0,
             itens: carrinho.map(it => ({
                 cod_toner: it.Cod_Toner,
                 id_itemcompra: it.Id_ItemCompra,

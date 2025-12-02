@@ -217,6 +217,18 @@
                 <span id="totalVenda" class="text-2xl font-bold text-green-600">R$ 0,00</span>
             </div>
 
+            <!-- CAMPO DE FRETE -->
+            <div class="mt-4">
+                <label class="block text-gray-700 font-medium">Frete (R$)</label>
+                <input id="inputFrete" 
+                    type="number" 
+                    min="0" 
+                    step="0.01" 
+                    value="0" 
+                    oninput="atualizarTotal()"
+                    class="w-full p-2 border rounded-xl">
+            </div>
+
             <!-- CAMPOS FINAIS -->
             <label class="block text-gray-700 font-medium">Número do Documento</label>
             <input id="inputDocumento" type="text"
