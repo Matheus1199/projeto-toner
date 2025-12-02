@@ -20,6 +20,7 @@ module.exports = {
                         ON C.Id_Cliente = P.Cod_Cliente
                 WHERE PR.Tipo = 2
                 AND PR.Operacao = 2
+                AND PR.Baixa = 0
                 ORDER BY PR.Data_Vencimento DESC;
 
             `);
@@ -40,6 +41,7 @@ module.exports = {
                         ON F.Id_Fornecedor = Cmp.Cod_Fornecedor
                 WHERE PR.Tipo = 1
                 AND PR.Operacao = 1
+                AND PR.Baixa = 0
                 ORDER BY PR.Data_Vencimento DESC;
             `);
 
@@ -120,6 +122,46 @@ module.exports = {
                     Conta = @conta
                 WHERE Id_Lancamento = @id
             `);
+
+      // ===============================================
+      // 1. Movimentar saldo da conta conforme tipo
+      // ===============================================
+      if (dados.Baixa && dados.Valor_Baixa) {
+        const valor = parseFloat(dados.Valor_Baixa);
+
+        // --- TIPOS ---
+        // Tipo = 2 → A RECEBER → soma na conta selecionada
+        // Tipo = 1 → A PAGAR → desconta da conta BARSOTTI (Id_Conta = 1)
+
+        // Busca o lançamento para saber o tipo
+        const infoLanc = await pool
+          .request()
+          .input("id", id)
+          .query("SELECT Tipo FROM Tbl_PagRec WHERE Id_Lancamento = @id");
+
+        const tipoLanc = infoLanc.recordset[0].Tipo;
+
+        if (tipoLanc === 2) {
+          // A RECEBER → SOMA na conta selecionada no modal
+          if (dados.Conta) {
+            await pool
+              .request()
+              .input("conta", dados.Conta)
+              .input("valor", valor).query(`
+                    UPDATE Tbl_Contas
+                    SET Saldo = Saldo + @valor
+                    WHERE Id_Conta = @conta
+                `);
+          }
+        } else if (tipoLanc === 1) {
+          // A PAGAR → DESCONTA da conta 1 (Barsotti)
+          await pool.request().input("valor", valor).query(`
+                UPDATE Tbl_Contas
+                SET Saldo = Saldo - @valor
+                WHERE Id_Conta = 1
+            `);
+        }
+      }
 
       // ===========================================
       // 2. Se NÃO foi baixado → termina aqui
@@ -206,20 +248,29 @@ module.exports = {
       ];
 
       for (let lc of lancamentos) {
+        // cadastra o lançamento da comissão
         await pool
           .request()
-          .input("Tipo", 2) // a receber
-          .input("Operacao", 3) // comissão
+          .input("Tipo", 2)
+          .input("Operacao", 3)
           .input("Id_Operacao", l.Id_Operacao)
           .input("Data_Vencimento", new Date())
           .input("Valor", lc.valor)
           .input("Conta", lc.conta)
           .input("Obs", lc.obs)
           .input("Baixa", 0).query(`
-                    INSERT INTO Tbl_PagRec
-                    (Tipo, Operacao, Id_Operacao, Data_Vencimento, Valor, Conta, Obs, Baixa)
-                    VALUES (@Tipo, @Operacao, @Id_Operacao, @Data_Vencimento, @Valor, @Conta, @Obs, @Baixa)
-                `);
+            INSERT INTO Tbl_PagRec
+            (Tipo, Operacao, Id_Operacao, Data_Vencimento, Valor, Conta, Obs, Baixa)
+            VALUES (@Tipo, @Operacao, @Id_Operacao, @Data_Vencimento, @Valor, @Conta, @Obs, @Baixa)
+        `);
+
+        // movimenta o saldo da conta automaticamente
+        await pool.request().input("conta", lc.conta).input("valor", lc.valor)
+          .query(`
+            UPDATE Tbl_Contas
+            SET Saldo = Saldo + @valor
+            WHERE Id_Conta = @conta
+        `);
       }
 
       // ===========================================

@@ -113,6 +113,8 @@ document.addEventListener("DOMContentLoaded", () => {
         lancEAN.value = '';
         lancObs.value = '';
         inputFrete.value = 0;
+        const fieldNF = document.getElementById("fieldNF");
+        if (fieldNF) fieldNF.checked = false;
         atualizarCarrinho();
         atualizarTabelaFinanceiro();
     }
@@ -451,19 +453,20 @@ document.addEventListener("DOMContentLoaded", () => {
             return alert("O total financeiro deve fechar com TOTAL + FRETE.");
 
         const payload = {
-            Cod_Cliente,
-            NDoc: inputDocumento.value,
-            Cond_Pagamento: inputCondPgto.value,
-            Obs: inputObs.value,
-            Valor_Frete: Number(inputFrete.value) || 0,
-            itens: carrinho.map(it => ({
-                cod_toner: it.Cod_Toner,
-                id_itemcompra: it.Id_ItemCompra,
-                quantidade: it.Quantidade,
-                valor_compra: it.Valor_Compra,
-                valor_venda: it.Valor_Venda
-            })),
-            financeiro: listaFinanceiro
+          Cod_Cliente,
+          NDoc: inputDocumento.value,
+          Cond_Pagamento: inputCondPgto.value,
+          Obs: inputObs.value,
+          Valor_Frete: Number(inputFrete.value) || 0,
+          NF: document.getElementById("fieldNF").checked ? 1 : 0,
+          itens: carrinho.map((it) => ({
+            cod_toner: it.Cod_Toner,
+            id_itemcompra: it.Id_ItemCompra,
+            quantidade: it.Quantidade,
+            valor_compra: it.Valor_Compra,
+            valor_venda: it.Valor_Venda,
+          })),
+          financeiro: listaFinanceiro,
         };
 
         try {
