@@ -12,8 +12,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // campos
     const fieldId = document.getElementById("fieldId");
-    const fieldTipo = document.getElementById("fieldTipo");
-    const fieldOperacao = document.getElementById("fieldOperacao");
     const fieldIdOperacao = document.getElementById("fieldIdOperacao");
     const fieldData = document.getElementById("fieldData");
     const fieldValor = document.getElementById("fieldValor");
@@ -122,8 +120,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
             modalTitle.innerText = "Editar Lançamento";
             fieldId.value = rec.Id_Lancamento;
-            fieldTipo.value = String(rec.Tipo ?? "");
-            fieldOperacao.value = String(rec.Operacao ?? "");
             fieldIdOperacao.value = rec.Id_Operacao ?? "";
             fieldData.value = fmtDataISOtoInput(rec.Data_Vencimento ?? rec.Data);
             fieldValor.value = rec.Valor ?? "";
@@ -161,8 +157,6 @@ document.addEventListener("DOMContentLoaded", () => {
         e.preventDefault();
 
         const payload = {
-            Tipo: parseInt(fieldTipo.value || 0, 10),
-            Operacao: parseInt(fieldOperacao.value || 0, 10),
             Id_Operacao: fieldIdOperacao.value ? parseInt(fieldIdOperacao.value, 10) : null,
             Data_Vencimento: fieldData.value ? fieldData.value + "T00:00:00" : null,
             Valor: fieldValor.value ? parseFloat(fieldValor.value) : 0,
