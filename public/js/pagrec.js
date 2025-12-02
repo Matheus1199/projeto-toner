@@ -17,9 +17,12 @@ document.addEventListener("DOMContentLoaded", () => {
     const fieldValor = document.getElementById("fieldValor");
     const fieldObs = document.getElementById("fieldObs");
     const fieldBaixa = document.getElementById("fieldBaixa");
-
     const tblReceberBody = document.querySelector("#tblReceber tbody");
     const tblPagarBody = document.querySelector("#tblPagar tbody");
+    const grupoBaixa = document.getElementById("grupoBaixa");
+    const fieldValorBaixa = document.getElementById("fieldValorBaixa");
+    const fieldDataBaixa = document.getElementById("fieldDataBaixa");
+    const fieldContaBaixa = document.getElementById("fieldContaBaixa");
 
     // formatações
     const fmtValor = v => "R$ " + parseFloat(v || 0).toFixed(2);
@@ -126,6 +129,14 @@ document.addEventListener("DOMContentLoaded", () => {
             fieldObs.value = rec.Obs ?? "";
             fieldBaixa.checked = !!rec.Baixa;
 
+            // popula os campos da baixa
+            fieldValorBaixa.value = rec.Valor_Baixa ?? "";
+            fieldDataBaixa.value = rec.Data_Baixa ? fmtDataISOtoInput(rec.Data_Baixa) : "";
+            fieldContaBaixa.value = rec.Conta ?? "";
+
+            // exibe/oculta grupo
+            atualizarCamposBaixa();
+
             abrirModal();
         } catch (err) {
             console.error(err);
@@ -157,11 +168,14 @@ document.addEventListener("DOMContentLoaded", () => {
         e.preventDefault();
 
         const payload = {
-            Id_Operacao: fieldIdOperacao.value ? parseInt(fieldIdOperacao.value, 10) : null,
+            Id_Operacao: fieldIdOperacao.value ? parseInt(fieldIdOperacao.value) : null,
             Data_Vencimento: fieldData.value ? fieldData.value + "T00:00:00" : null,
             Valor: fieldValor.value ? parseFloat(fieldValor.value) : 0,
             Obs: fieldObs.value || null,
-            Baixa: fieldBaixa.checked ? 1 : 0
+            Baixa: fieldBaixa.checked ? 1 : 0,
+            Valor_Baixa: fieldBaixa.checked ? (fieldValorBaixa.value || null) : null,
+            Data_Baixa: fieldBaixa.checked ? (fieldDataBaixa.value || null) : null,
+            Conta: fieldBaixa.checked ? (fieldContaBaixa.value || null) : null
         };
 
         const id = fieldId.value;
@@ -193,6 +207,21 @@ document.addEventListener("DOMContentLoaded", () => {
             alert("Erro ao salvar lançamento.");
         }
     });
+
+    function atualizarCamposBaixa() {
+    if (fieldBaixa.checked) {
+        grupoBaixa.classList.remove("hidden");
+    } else {
+        grupoBaixa.classList.add("hidden");
+
+        // limpa os campos
+        fieldValorBaixa.value = "";
+        fieldDataBaixa.value = "";
+        fieldContaBaixa.value = "";
+        }
+    }
+
+    fieldBaixa.addEventListener("change", atualizarCamposBaixa);
 
     // inicializa lista
     carregarPagRec();
