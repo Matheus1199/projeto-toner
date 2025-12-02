@@ -149,12 +149,49 @@ async function carregarVendasRecentes() {
     }
 }
 
+async function carregarResumo() {
+  try {
+    const req = await fetch("/dashboard/resumo-pagrec");
+    const data = await req.json();
 
+    if (!data.ok) return;
+
+    const periodos = {
+      7: 0,
+      14: 0,
+      21: 0,
+      MES: 0,
+    };
+
+    data.periodos.forEach((item) => {
+      periodos[item.Periodo] += item.Total;
+    });
+
+    document.getElementById("dias7").innerText = periodos["7"].toLocaleString(
+      "pt-BR",
+      { style: "currency", currency: "BRL" }
+    );
+    document.getElementById("dias14").innerText = periodos["14"].toLocaleString(
+      "pt-BR",
+      { style: "currency", currency: "BRL" }
+    );
+    document.getElementById("dias21").innerText = periodos["21"].toLocaleString(
+      "pt-BR",
+      { style: "currency", currency: "BRL" }
+    );
+    document.getElementById("mesAtual").innerText = periodos[
+      "MES"
+    ].toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+  } catch (e) {
+    console.log("Erro ao carregar resumo:", e);
+  }
+}
 
 // Executa ao carregar e a cada 30s
 carregarVendasRecentes()
 carregarLocacao();
 carregarDashboard();
+carregarResumo();
 setInterval(carregarDashboard, 30000);
 
 // Logout

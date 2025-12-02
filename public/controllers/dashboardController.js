@@ -1,9 +1,9 @@
 module.exports = {
-    geral: async (req, res) => {
-        const pool = req.app.get("db");
+  geral: async (req, res) => {
+    const pool = req.app.get("db");
 
-        try {
-            const result = await pool.request().query(`
+    try {
+      const result = await pool.request().query(`
                 SELECT
                         (SELECT COUNT(Id_Cliente) FROM Tbl_Clientes WHERE Ativo = 1) AS totalClientes,
                         (SELECT COUNT(Id_Fornecedor) FROM Tbl_Fornecedores WHERE Status = 1) AS totalFornecedores,
@@ -23,19 +23,18 @@ module.exports = {
                     (SELECT ISNULL(SUM(Valor_Total),0) FROM Tbl_Pedidos) AS vendasTotais
             `);
 
-            res.json(result.recordset[0]);
+      res.json(result.recordset[0]);
+    } catch (err) {
+      console.error("Erro ao buscar dados do dashboard:", err);
+      res.status(500).json({ error: "Erro ao buscar dados do dashboard" });
+    }
+  },
 
-        } catch (err) {
-            console.error("Erro ao buscar dados do dashboard:", err);
-            res.status(500).json({ error: "Erro ao buscar dados do dashboard" });
-        }
-    },
+  locacao: async (req, res) => {
+    const pool = req.app.get("db");
 
-    locacao: async (req, res) => {
-        const pool = req.app.get("db");
-
-        try {
-            const q = `
+    try {
+      const q = `
                 SELECT
                     T.Cod_Produto,
                     T.Modelo,
@@ -49,20 +48,19 @@ module.exports = {
                 ORDER BY Saldo_Disponivel DESC;
             `;
 
-            const result = await pool.request().query(q);
-            res.json(result.recordset);
+      const result = await pool.request().query(q);
+      res.json(result.recordset);
+    } catch (err) {
+      console.error("Erro dashboard/locacao:", err);
+      res.status(500).json({ error: "Erro ao buscar toners de locação." });
+    }
+  },
 
-        } catch (err) {
-            console.error("Erro dashboard/locacao:", err);
-            res.status(500).json({ error: "Erro ao buscar toners de locação." });
-        }
-    },
+  vendasRecentes: async (req, res) => {
+    const pool = req.app.get("db");
 
-    vendasRecentes: async (req, res) => {
-        const pool = req.app.get("db");
-
-        try {
-            const result = await pool.request().query(`
+    try {
+      const result = await pool.request().query(`
                 SELECT TOP 5
                     C.Nome AS Cliente,
                     CONCAT(T.Marca, ' ', T.Modelo) AS Toner,
@@ -76,11 +74,71 @@ module.exports = {
                 ORDER BY P.Data DESC
             `);
 
-            res.json(result.recordset);
-
-        } catch (err) {
-            console.error("Erro ao buscar vendas recentes:", err);
-            res.status(500).json({ error: "Erro ao buscar vendas recentes" });
-        }
+      res.json(result.recordset);
+    } catch (err) {
+      console.error("Erro ao buscar vendas recentes:", err);
+      res.status(500).json({ error: "Erro ao buscar vendas recentes" });
     }
+  },
+
+  resumoPagRec: async (req, res) => {
+    try {
+      const pool = req.app.get("db");
+
+      const query = `
+                SELECT 
+                    Tipo,
+                    SUM(Valor) AS Total
+                FROM Tbl_PagRec
+                WHERE Baixa = 0 AND (
+                    Data_Vencimento BETWEEN GETDATE() AND DATEADD(day, 21, GETDATE())
+                    OR MONTH(Data_Vencimento) = MONTH(GETDATE())
+                       AND YEAR(Data_Vencimento) = YEAR(GETDATE())
+                )
+                GROUP BY Tipo;
+            `;
+
+      const result = await pool.request().query(query);
+
+      // Tipo: 1 = receber, 2 = pagar
+      const pagar = result.recordset
+        .filter((r) => r.Tipo === 2)
+        .reduce((t, r) => t + r.Total, 0);
+      const receber = result.recordset
+        .filter((r) => r.Tipo === 1)
+        .reduce((t, r) => t + r.Total, 0);
+
+      // Totais por período
+      const queryPeriodos = `
+                SELECT 
+                    Tipo,
+                    CASE
+                        WHEN Data_Vencimento <= DATEADD(day, 7, GETDATE()) THEN '7'
+                        WHEN Data_Vencimento <= DATEADD(day, 14, GETDATE()) THEN '14'
+                        WHEN Data_Vencimento <= DATEADD(day, 21, GETDATE()) THEN '21'
+                        ELSE 'MES'
+                    END AS Periodo,
+                    SUM(Valor) AS Total
+                FROM Tbl_PagRec
+                WHERE Baixa = 0 
+                GROUP BY Tipo,
+                    CASE
+                        WHEN Data_Vencimento <= DATEADD(day, 7, GETDATE()) THEN '7'
+                        WHEN Data_Vencimento <= DATEADD(day, 14, GETDATE()) THEN '14'
+                        WHEN Data_Vencimento <= DATEADD(day, 21, GETDATE()) THEN '21'
+                        ELSE 'MES'
+                    END;
+            `;
+
+      const periodos = await pool.request().query(queryPeriodos);
+
+      res.json({
+        ok: true,
+        periodos: periodos.recordset,
+      });
+    } catch (err) {
+      console.log("Erro Dashboard", err);
+      res.status(500).json({ ok: false, error: err });
+    }
+  }
 };
