@@ -223,7 +223,30 @@ document.addEventListener("DOMContentLoaded", () => {
 
     fieldBaixa.addEventListener("change", atualizarCamposBaixa);
 
+    async function carregarContas() {
+      const select = document.getElementById("fieldContaBaixa");
+      select.innerHTML = `<option value="">Selecione...</option>`;
+
+      try {
+        const res = await fetch("/contas/listar");
+        if (!res.ok) throw new Error("Erro ao buscar contas");
+
+        const contas = await res.json();
+
+        contas.forEach((c) => {
+          const opt = document.createElement("option");
+          opt.value = c.Id_Conta;
+          opt.textContent = `${c.Nome}`;
+          select.appendChild(opt);
+        });
+      } catch (err) {
+        console.error(err);
+        alert("Erro ao carregar contas.");
+      }
+    }
+
     // inicializa lista
+    carregarContas();
     carregarPagRec();
 
 });
