@@ -3,6 +3,6 @@ const router = express.Router();
 const estoqueController = require("../controllers/estoqueController");
 
 router.get("/disponivel", estoqueController.disponivel);
-router.get("/buscar", estoqueController.buscar);
+router.post("/buscar", estoqueController.buscar);
 
 module.exports = router;
