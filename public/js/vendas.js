@@ -42,6 +42,16 @@ document.addEventListener("DOMContentLoaded", () => {
     const inputObs = document.getElementById("inputObs");
     const inputFrete = document.getElementById("inputFrete");
 
+    if (inputFrete) {
+    inputFrete.addEventListener('input', () => {
+        // opcional: garantir número válido
+        if (inputFrete.value === '' || isNaN(Number(inputFrete.value))) {
+            inputFrete.value = 0;
+        }
+        atualizarTotal();
+        });
+    }
+
     // financeiro DOM
     const lancVencimento = document.getElementById("lancVencimento");
     const lancValor = document.getElementById("lancValor");
