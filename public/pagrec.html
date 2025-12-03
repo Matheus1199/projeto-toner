@@ -43,33 +43,30 @@
         <h1 class="text-3xl font-bold text-gray-700">Pagamentos & Recebimentos</h1>
     </div>
 
-    <!-- LISTA -->
-    <h2 class="text-xl font-bold text-green-600 mt-4">Títulos a Receber</h2>
-    <table id="tblReceber" class="w-full mt-2 border text-sm">
-        <thead class="bg-gray-200">
-            <tr>
-                <th class="p-2">Código</th>
-                <th class="p-2">Data</th>
-                <th class="p-2">Cliente</th>
-                <th class="p-2">Documento</th>
-                <th class="p-2">Valor</th>
-                <th class="p-2">Cond. Pagamento</th>
-                <th class="p-2">Ações</th>
-            </tr>
-        </thead>
-        <tbody class="text-center"></tbody>
-    </table>
+    <!-- filtro / dropdown -->
+    <div class="flex justify-end items-center mb-4">
+        <label for="pagrec-filter" class="mr-2 font-medium">Mostrar:</label>
+        <select id="pagrec-filter" class="border rounded px-2 py-1" aria-label="Filtrar lançamentos">
+            <option value="all">Todos</option>
+            <option value="apagar">A pagar</option>
+            <option value="areceber">A receber</option>
+            <option value="comissao">Comissão</option>
+            <option value="locacao">Locação</option>
+        </select>
+    </div>
 
-    <h2 class="text-xl font-bold text-red-600 mt-8">Títulos a Pagar</h2>
-    <table id="tblPagar" class="w-full mt-2 border text-sm">
+    <!-- TABELA UNIFICADA -->
+    <h2 class="text-xl font-bold text-gray-700 mt-4">Lançamentos</h2>
+    <table id="tblPagRec" class="w-full mt-2 border text-sm">
         <thead class="bg-gray-200">
             <tr>
                 <th class="p-2">Código</th>
                 <th class="p-2">Data</th>
-                <th class="p-2">Fornecedor</th>
+                <th class="p-2">Parte</th> <!-- Cliente ou Fornecedor -->
                 <th class="p-2">Documento</th>
                 <th class="p-2">Valor</th>
                 <th class="p-2">Cond. Pagamento</th>
+                <th class="p-2">Categorias</th>
                 <th class="p-2">Ações</th>
             </tr>
         </thead>
@@ -138,7 +135,6 @@
 
     </div>
 </div>
-
 
 <script src="js/pagrec.js"></script>
 </body>
