@@ -40,69 +40,84 @@ async function carregarDashboard() {
 // 🔵 Toners de Locação em Estoque
 // =============================
 async function carregarLocacao() {
-    try {
-        const res = await fetch('/dashboard/locacao');
-        if (!res.ok) {
-            console.error('Erro ao buscar locação:', res.status);
-            return;
-        }
-        const dados = await res.json(); // array de { Cod_Produto, Modelo, Marca, Saldo_Disponivel }
-
-        // total unidades e total de modelos
-        const totalUnidades = dados.reduce((s, it) => s + (Number(it.Saldo_Disponivel) || 0), 0);
-        const totalModelos = dados.length;
-
-        // atualiza DOM (card)
-        document.getElementById('locacaoEstoqueValue').textContent = totalUnidades;
-        document.getElementById('locacaoModelos').textContent = `${totalModelos} modelo${totalModelos === 1 ? '' : 's'}`;
-
-        // opcional: criar/atualizar uma lista curta dentro do card para visibilidade rápida
-        // checa se já existe uma div para a listagem; se não, cria
-        let card = document.getElementById('cardLocacaoList');
-        if (!card) {
-            const container = document.createElement('div');
-            container.id = 'cardLocacaoList';
-            container.className = 'mt-3';
-            const parent = document.querySelector('#locacaoEstoqueValue').closest('.bg-white');
-            parent.appendChild(container);
-            card = container;
-        }
-
-        if (dados.length === 0) {
-            card.innerHTML = `<p class="text-sm text-gray-500">Nenhum toner de locação com saldo disponível.</p>`;
-        } else {
-            // mostra até 6 itens (para não poluir o card), com link para página de toners
-            const maxShow = 6;
-            card.innerHTML = `
-        <ul class="mt-2 space-y-2">
-          ${dados.slice(0, maxShow).map(it => `
-            <li class="flex justify-between items-center">
-              <div>
-                <div class="text-sm font-medium">${escapeHtml(it.Marca)} - ${escapeHtml(it.Modelo)}</div>
-                <div class="text-xs text-gray-400">${it.Cod_Produto ? `ID ${it.Cod_Produto}` : ''}</div>
-              </div>
-              <div class="text-sm font-semibold text-blue-600">${it.Saldo_Disponivel}</div>
-            </li>
-          `).join('')}
-        </ul>
-        ${dados.length > maxShow ? `<div class="text-xs text-gray-400 mt-2">e mais ${dados.length - maxShow}...</div>` : ''}
-      `;
-        }
-
-    } catch (err) {
-        console.error("Erro ao carregar locação:", err);
+  try {
+    const res = await fetch("/dashboard/locacao");
+    if (!res.ok) {
+      console.error("Erro ao buscar locação:", res.status);
+      return;
     }
+    const dados = await res.json(); // array de { Cod_Produto, Modelo, Marca, Saldo_Disponivel }
+
+    // total unidades e total de modelos
+    const totalUnidades = dados.reduce(
+      (s, it) => s + (Number(it.Saldo_Disponivel) || 0),
+      0
+    );
+    const totalModelos = dados.length;
+
+    // atualiza DOM (card)
+    document.getElementById("locacaoEstoqueValue").textContent = totalUnidades;
+    document.getElementById(
+      "locacaoModelos"
+    ).textContent = `${totalModelos} modelo${totalModelos === 1 ? "" : "s"}`;
+
+    // cria/usa container para a listagem
+    let card = document.getElementById("cardLocacaoList");
+    if (!card) {
+      const container = document.createElement("div");
+      container.id = "cardLocacaoList";
+      container.className = "mt-3";
+      const parent = document
+        .querySelector("#locacaoEstoqueValue")
+        .closest(".bg-white");
+      parent.appendChild(container);
+      card = container;
+    }
+
+    if (dados.length === 0) {
+      card.innerHTML = `<p class="text-sm text-gray-500">Nenhum toner de locação com saldo disponível.</p>`;
+    } else {
+      // **Renderiza todos os itens** (sem slice), para mostrar tudo
+      // Se preferir limitar visualmente mas não cortar, adicione nas classes abaixo:
+      // container.className = 'mt-3 max-h-80 overflow-y-auto'; // <- ativa scroll interno
+      card.innerHTML = `
+                <ul class="mt-2 space-y-2">
+                  ${dados
+                    .map(
+                      (it) => `
+                    <li class="flex justify-between items-center">
+                      <div>
+                        <div class="text-sm font-medium">${escapeHtml(
+                          it.Marca
+                        )} - ${escapeHtml(it.Modelo)}</div>
+                        <div class="text-xs text-gray-400">${
+                          it.Cod_Produto ? `ID ${it.Cod_Produto}` : ""
+                        }</div>
+                      </div>
+                      <div class="text-sm font-semibold text-blue-600">${
+                        it.Saldo_Disponivel
+                      }</div>
+                    </li>
+                  `
+                    )
+                    .join("")}
+                </ul>
+            `;
+    }
+  } catch (err) {
+    console.error("Erro ao carregar locação:", err);
+  }
 }
 
 // helper para escapar texto (evita injeção)
 function escapeHtml(str) {
-    if (str === null || str === undefined) return '';
-    return String(str)
-        .replace(/&/g, '&amp;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#39;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;');
+  if (str === null || str === undefined) return "";
+  return String(str)
+    .replace(/&/g, "&amp;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
 }
 
 // =============================
