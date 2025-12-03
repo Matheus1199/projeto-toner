@@ -157,31 +157,48 @@ async function carregarResumo() {
     if (!data.ok) return;
 
     const periodos = {
-      7: 0,
-      14: 0,
-      21: 0,
-      MES: 0,
+      7: { r: 0, p: 0 },
+      14: { r: 0, p: 0 },
+      21: { r: 0, p: 0 },
     };
 
     data.periodos.forEach((item) => {
-      periodos[item.Periodo] += item.Total;
+      const periodo = item.Periodo;
+
+      // Ignora o período MES, porque não usamos mais
+      if (!periodos[periodo]) return;
+
+      const tipo = item.Tipo === 1 ? "r" : "p";
+      periodos[periodo][tipo] = item.Total;
     });
 
-    document.getElementById("dias7").innerText = periodos["7"].toLocaleString(
+    // Preencher no DOM
+    document.getElementById("r7").innerText = periodos["7"].r.toLocaleString(
       "pt-BR",
       { style: "currency", currency: "BRL" }
     );
-    document.getElementById("dias14").innerText = periodos["14"].toLocaleString(
+    document.getElementById("p7").innerText = periodos["7"].p.toLocaleString(
       "pt-BR",
       { style: "currency", currency: "BRL" }
     );
-    document.getElementById("dias21").innerText = periodos["21"].toLocaleString(
+
+    document.getElementById("r14").innerText = periodos["14"].r.toLocaleString(
       "pt-BR",
       { style: "currency", currency: "BRL" }
     );
-    document.getElementById("mesAtual").innerText = periodos[
-      "MES"
-    ].toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+    document.getElementById("p14").innerText = periodos["14"].p.toLocaleString(
+      "pt-BR",
+      { style: "currency", currency: "BRL" }
+    );
+
+    document.getElementById("r21").innerText = periodos["21"].r.toLocaleString(
+      "pt-BR",
+      { style: "currency", currency: "BRL" }
+    );
+    document.getElementById("p21").innerText = periodos["21"].p.toLocaleString(
+      "pt-BR",
+      { style: "currency", currency: "BRL" }
+    );
   } catch (e) {
     console.log("Erro ao carregar resumo:", e);
   }

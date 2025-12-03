@@ -82,34 +82,10 @@ module.exports = {
   },
 
   resumoPagRec: async (req, res) => {
-    try {
-      const pool = req.app.get("db");
+        try {
+            const pool = req.app.get("db");
 
-      const query = `
-                SELECT 
-                    Tipo,
-                    SUM(Valor) AS Total
-                FROM Tbl_PagRec
-                WHERE Baixa = 0 AND (
-                    Data_Vencimento BETWEEN GETDATE() AND DATEADD(day, 21, GETDATE())
-                    OR MONTH(Data_Vencimento) = MONTH(GETDATE())
-                       AND YEAR(Data_Vencimento) = YEAR(GETDATE())
-                )
-                GROUP BY Tipo;
-            `;
-
-      const result = await pool.request().query(query);
-
-      // Tipo: 1 = receber, 2 = pagar
-      const pagar = result.recordset
-        .filter((r) => r.Tipo === 2)
-        .reduce((t, r) => t + r.Total, 0);
-      const receber = result.recordset
-        .filter((r) => r.Tipo === 1)
-        .reduce((t, r) => t + r.Total, 0);
-
-      // Totais por período
-      const queryPeriodos = `
+            const queryPeriodos = `
                 SELECT 
                     Tipo,
                     CASE
@@ -130,15 +106,16 @@ module.exports = {
                     END;
             `;
 
-      const periodos = await pool.request().query(queryPeriodos);
+            const periodos = await pool.request().query(queryPeriodos);
 
-      res.json({
-        ok: true,
-        periodos: periodos.recordset,
-      });
-    } catch (err) {
-      console.log("Erro Dashboard", err);
-      res.status(500).json({ ok: false, error: err });
+            res.json({
+                ok: true,
+                periodos: periodos.recordset
+            });
+
+        } catch (err) {
+            console.log("Erro Dashboard", err);
+            res.status(500).json({ ok: false, error: err });
+        }
     }
-  }
 };
