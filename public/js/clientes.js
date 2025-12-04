@@ -62,27 +62,32 @@ document.addEventListener("DOMContentLoaded", () => {
 
             // Preencher as últimas 5 compras
             for (const compra of compras) {
-                const itens = await buscarItensPedido(compra.Cod_Pedido);
+              // monta string dos toners ex:
+              // "HP 12A (1), Brother 750 (2)"
+              const listaToners =
+                compra.itens && compra.itens.length > 0
+                  ? compra.itens
+                      .map((i) => `${i.Modelo} (${i.Quantidade})`)
+                      .join(", ")
+                  : "-";
 
-                const tr = document.createElement("tr");
-                tr.innerHTML = `
-                    <td class="py-3 border-b font-medium text-center">${new Date(compra.Data).toLocaleDateString()}</td>
-                    <td class="py-3 border-b font-medium text-center">#${compra.Cod_Pedido}</td>
-                    <td class="py-3 border-b font-medium text-center">${compra.QuantidadeTotal}</td>
-                    <td class="py-3 border-b font-medium text-green-700 text-center">R$ ${compra.Valor_Total.toFixed(2)}</td>
-                `;
-                tabelaCompras.appendChild(tr);
-
-                itens.forEach(item => {
-                    const trItem = document.createElement("tr");
-                    trItem.innerHTML = `
-                        <td class="py-2 pl-6 text-gray-600 text-center">↳ ${item.Marca} - ${item.Modelo} (${item.Tipo})</td>
-                        <td class="py-2 text-gray-600 text-center">Qtd: ${item.Quantidade}</td>
-                        <td></td>
-                        <td></td>
-                    `;
-                    tabelaCompras.appendChild(trItem);
-                });
+              const tr = document.createElement("tr");
+              tr.innerHTML = `
+        <td class="py-3 border-b font-medium text-center">${new Date(
+          compra.Data
+        ).toLocaleDateString()}</td>
+        <td class="py-3 border-b font-medium text-center">#${
+          compra.Cod_Pedido
+        }</td>
+        <td class="py-3 border-b font-medium text-center">${
+          compra.QuantidadeTotal
+        }</td>
+        <td class="py-3 border-b font-medium text-green-700 text-center">R$ ${compra.Valor_Total.toFixed(
+          2
+        )}</td>
+        <td class="py-3 border-b text-center text-gray-700">${listaToners}</td>
+    `;
+              tabelaCompras.appendChild(tr);
             }
 
         } catch (err) {
@@ -90,19 +95,6 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
-    // ============================
-    // 📦 Buscar itens do pedido
-    // ============================
-    async function buscarItensPedido(codPedido) {
-        try {
-            const res = await fetch(`/pedidos/${codPedido}/itens`);
-            if (!res.ok) return [];
-            return await res.json();
-        } catch (err) {
-            console.error("Erro ao buscar itens:", err);
-            return [];
-        }
-    }
 
     // ===============================
     // 🎯 Abrir e Fechar Modal Cliente

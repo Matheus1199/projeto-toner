@@ -1,137 +1,158 @@
 module.exports = {
-    cadastrar: async (req, res) => {
-        const pool = req.app.get("db");
-        const sql = req.app.get("sql");
+  cadastrar: async (req, res) => {
+    const pool = req.app.get("db");
+    const sql = req.app.get("sql");
 
-        const { nome, ativo, id_vendedor } = req.body;
+    const { nome, ativo, id_vendedor } = req.body;
 
-        try {
-            await pool.request()
-                .input("nome", sql.VarChar(100), nome)
-                .input("ativo", sql.Bit, ativo)
-                .input("id_vendedor", sql.Int, id_vendedor)
-                .query(`
+    try {
+      await pool
+        .request()
+        .input("nome", sql.VarChar(100), nome)
+        .input("ativo", sql.Bit, ativo)
+        .input("id_vendedor", sql.Int, id_vendedor).query(`
                     INSERT INTO Tbl_Clientes (Nome, Ativo, Id_vendedor)
                     VALUES (@nome, @ativo, @id_vendedor)
                 `);
 
-            res.status(201).json({ message: "Cliente cadastrado com sucesso!" });
+      res.status(201).json({ message: "Cliente cadastrado com sucesso!" });
+    } catch (error) {
+      console.error("Erro ao cadastrar cliente:", error);
+      res.status(500).json({ error: "Erro ao cadastrar cliente" });
+    }
+  },
 
-        } catch (error) {
-            console.error("Erro ao cadastrar cliente:", error);
-            res.status(500).json({ error: "Erro ao cadastrar cliente" });
-        }
-    },
+  pesquisar: async (req, res) => {
+    const pool = req.app.get("db");
+    const sql = req.app.get("sql");
 
-    pesquisar: async (req, res) => {
-        const pool = req.app.get("db");
-        const sql = req.app.get("sql");
+    const { nome } = req.query;
 
-        const { nome } = req.query;
+    try {
+      // Buscar cliente
+      const clienteResult = await pool
+        .request()
+        .input("nome", sql.VarChar, `%${nome}%`).query(`
+                SELECT TOP 1 
+                    Id_cliente,
+                    Nome,
+                    Ativo,
+                    Id_vendedor
+                FROM Tbl_Clientes
+                WHERE Nome LIKE @nome
+            `);
 
-        try {
-            const clienteResult = await pool.request()
-                .input("nome", sql.VarChar, `%${nome}%`)
-                .query(`
-                    SELECT TOP 1 
-                        Id_cliente,
-                        Nome,
-                        Ativo,
-                        Id_vendedor
-                    FROM Tbl_Clientes
-                    WHERE Nome LIKE @nome
+      if (clienteResult.recordset.length === 0)
+        return res.status(404).json({ error: "Cliente não encontrado" });
+
+      const cliente = clienteResult.recordset[0];
+
+      // Buscar as últimas 5 compras
+      const vendasResult = await pool
+        .request()
+        .input("id", sql.Int, cliente.Id_cliente).query(`
+                SELECT TOP 5
+                    P.Cod_Pedido,
+                    P.Data,
+                    P.Valor_Total,
+                    P.NDoc,
+                    (
+                        SELECT SUM(Quantidade) 
+                        FROM Tbl_PedidosItens I 
+                        WHERE I.Cod_Pedido = P.Cod_Pedido
+                    ) AS QuantidadeTotal
+                FROM Tbl_Pedidos P
+                WHERE P.Cod_Cliente = @id
+                ORDER BY P.Data DESC
+            `);
+
+      const compras = [];
+
+      // Para cada pedido, buscar os itens vendidos
+      for (const compra of vendasResult.recordset) {
+        const itensResult = await pool
+          .request()
+          .input("Cod_Pedido", sql.Int, compra.Cod_Pedido).query(`
+                    SELECT 
+                        I.Quantidade,
+                        T.Modelo,
+                        T.Marca,
+                        T.Tipo
+                    FROM Tbl_PedidosItens I
+                    INNER JOIN Tbl_Toner T ON T.Cod_Produto = I.Cod_Toner
+                    WHERE I.Cod_Pedido = @Cod_Pedido
                 `);
 
-            if (clienteResult.recordset.length === 0)
-                return res.status(404).json({ error: "Cliente não encontrado" });
+        compras.push({
+          ...compra,
+          itens: itensResult.recordset,
+        });
+      }
 
-            const cliente = clienteResult.recordset[0];
+      res.json({
+        cliente,
+        compras,
+      });
+    } catch (error) {
+      console.error("Erro ao pesquisar cliente:", error);
+      res.status(500).json({ error: "Erro ao pesquisar cliente" });
+    }
+  },
 
-            const vendasResult = await pool.request()
-                .input("id", sql.Int, cliente.Id_cliente)
-                .query(`
-                    SELECT TOP 5
-                        P.Cod_Pedido,
-                        P.Data,
-                        P.Valor_Total,
-                        P.NDoc,
-                        (
-                            SELECT SUM(Quantidade) 
-                            FROM Tbl_PedidosItens I 
-                            WHERE I.Cod_Pedido = P.Cod_Pedido
-                        ) AS QuantidadeTotal
-                    FROM Tbl_Pedidos P
-                    WHERE P.Cod_Cliente = @id
-                    ORDER BY P.Data DESC
-                `);
+  listarTodos: async (req, res) => {
+    const pool = req.app.get("db");
 
-            res.json({
-                cliente,
-                compras: vendasResult.recordset
-            });
-
-        } catch (error) {
-            console.error("Erro ao pesquisar cliente:", error);
-            res.status(500).json({ error: "Erro ao pesquisar cliente" });
-        }
-    },
-
-    listarTodos: async (req, res) => {
-        const pool = req.app.get("db");
-
-        try {
-            const result = await pool.request().query(`
+    try {
+      const result = await pool.request().query(`
                 SELECT Id_cliente, Nome, Ativo, Id_vendedor 
                 FROM Tbl_Clientes
             `);
 
-            res.json(result.recordset);
+      res.json(result.recordset);
+    } catch (error) {
+      console.error("Erro ao listar clientes:", error);
+      res.status(500).json({ error: "Erro ao listar clientes" });
+    }
+  },
 
-        } catch (error) {
-            console.error("Erro ao listar clientes:", error);
-            res.status(500).json({ error: "Erro ao listar clientes" });
-        }
-    },
+  buscarPorId: async (req, res) => {
+    const pool = req.app.get("db");
+    const sql = req.app.get("sql");
+    const { Id_cliente } = req.params;
 
-    buscarPorId: async (req, res) => {
-        const pool = req.app.get("db");
-        const sql = req.app.get("sql");
-        const { Id_cliente } = req.params;
-
-        try {
-            const result = await pool.request()
-                .input("Id_cliente", sql.Int, Id_cliente)
-                .query(`
+    try {
+      const result = await pool
+        .request()
+        .input("Id_cliente", sql.Int, Id_cliente).query(`
                     SELECT Id_cliente, Nome, Ativo, Id_vendedor 
                     FROM Tbl_Clientes 
                     WHERE Id_cliente = @Id_cliente
                 `);
 
-            if (result.recordset.length === 0)
-                return res.status(404).json({ error: "Cliente não encontrado." });
+      if (result.recordset.length === 0)
+        return res.status(404).json({ error: "Cliente não encontrado." });
 
-            res.json(result.recordset[0]);
+      res.json(result.recordset[0]);
+    } catch (error) {
+      console.error("Erro ao buscar cliente:", error);
+      res.status(500).json({ error: "Erro ao buscar cliente" });
+    }
+  },
 
-        } catch (error) {
-            console.error("Erro ao buscar cliente:", error);
-            res.status(500).json({ error: "Erro ao buscar cliente" });
-        }
-    },
+  editar: async (req, res) => {
+    const pool = req.app.get("db");
+    const sql = req.app.get("sql");
 
-    editar: async (req, res) => {
-        const pool = req.app.get("db");
-        const sql = req.app.get("sql");
+    const { Id_cliente } = req.params;
+    const { nome, ativo, id_vendedor } = req.body;
 
-        const { Id_cliente } = req.params;
-        const { nome, ativo, id_vendedor } = req.body;
-
-        try {
-            const result = await pool.request()
-                .input("Id_cliente", sql.Int, Id_cliente)
-                .input("nome", sql.VarChar(100), nome)
-                .input("ativo", sql.Bit, ativo)
-                .input("id_vendedor", sql.Int, id_vendedor)
-                .query(`
+    try {
+      const result = await pool
+        .request()
+        .input("Id_cliente", sql.Int, Id_cliente)
+        .input("nome", sql.VarChar(100), nome)
+        .input("ativo", sql.Bit, ativo)
+        .input("id_vendedor", sql.Int, id_vendedor).query(`
                     UPDATE Tbl_Clientes
                     SET Nome = @nome,
                         Ativo = @ativo,
@@ -139,51 +160,47 @@ module.exports = {
                     WHERE Id_cliente = @Id_cliente
                 `);
 
-            if (result.rowsAffected[0] === 0)
-                return res.status(404).json({ error: "Cliente não encontrado." });
+      if (result.rowsAffected[0] === 0)
+        return res.status(404).json({ error: "Cliente não encontrado." });
 
-            res.json({ message: "Cliente atualizado com sucesso!" });
+      res.json({ message: "Cliente atualizado com sucesso!" });
+    } catch (error) {
+      console.error("Erro ao atualizar cliente:", error);
+      res.status(500).json({ error: "Erro ao atualizar cliente" });
+    }
+  },
 
-        } catch (error) {
-            console.error("Erro ao atualizar cliente:", error);
-            res.status(500).json({ error: "Erro ao atualizar cliente" });
-        }
-    },
+  excluir: async (req, res) => {
+    const pool = req.app.get("db");
+    const sql = req.app.get("sql");
 
-    excluir: async (req, res) => {
-        const pool = req.app.get("db");
-        const sql = req.app.get("sql");
+    const { Id_cliente } = req.params;
 
-        const { Id_cliente } = req.params;
-
-        try {
-            const result = await pool.request()
-                .input("Id_cliente", sql.Int, Id_cliente)
-                .query(`
+    try {
+      const result = await pool
+        .request()
+        .input("Id_cliente", sql.Int, Id_cliente).query(`
                     DELETE FROM Tbl_Clientes 
                     WHERE Id_cliente = @Id_cliente
                 `);
 
-            if (result.rowsAffected[0] === 0)
-                return res.status(404).json({ error: "Cliente não encontrado." });
+      if (result.rowsAffected[0] === 0)
+        return res.status(404).json({ error: "Cliente não encontrado." });
 
-            res.json({ message: "Cliente excluído com sucesso!" });
+      res.json({ message: "Cliente excluído com sucesso!" });
+    } catch (error) {
+      console.error("Erro ao excluir cliente:", error);
+      res.status(500).json({ error: "Erro ao excluir cliente" });
+    }
+  },
 
-        } catch (error) {
-            console.error("Erro ao excluir cliente:", error);
-            res.status(500).json({ error: "Erro ao excluir cliente" });
-        }
-    },
+  itensPedido: async (req, res) => {
+    const pool = req.app.get("db");
+    const sql = req.app.get("sql");
+    const { id } = req.params;
 
-    itensPedido: async (req, res) => {
-        const pool = req.app.get("db");
-        const sql = req.app.get("sql");
-        const { id } = req.params;
-
-        try {
-            const result = await pool.request()
-                .input("id", sql.Int, id)
-                .query(`
+    try {
+      const result = await pool.request().input("id", sql.Int, id).query(`
                     SELECT 
                         I.Cod_Pedido,
                         I.Quantidade,
@@ -196,14 +213,15 @@ module.exports = {
                     WHERE I.Cod_Pedido = @id
                 `);
 
-            if (result.recordset.length === 0)
-                return res.status(404).json({ error: "Nenhum item encontrado para este pedido." });
+      if (result.recordset.length === 0)
+        return res
+          .status(404)
+          .json({ error: "Nenhum item encontrado para este pedido." });
 
-            res.json(result.recordset);
-
-        } catch (error) {
-            console.error("Erro ao buscar itens do pedido:", error);
-            res.status(500).json({ error: "Erro ao buscar itens do pedido." });
-        }
+      res.json(result.recordset);
+    } catch (error) {
+      console.error("Erro ao buscar itens do pedido:", error);
+      res.status(500).json({ error: "Erro ao buscar itens do pedido." });
     }
+  },
 };
