@@ -228,6 +228,18 @@ module.exports = {
 
       const ped = pedido.recordset[0];
 
+      let juros = 0;
+      if (valorPago > ped.Valor_Total) {
+        juros = valorPago - ped.Valor_Total;
+
+        // Credita o JUROS na conta 4
+        await pool.request().input("conta", 4).input("valor", juros).query(`
+            UPDATE Tbl_Contas
+            SET Saldo = Saldo + @valor
+            WHERE Id_Conta = @conta
+        `);
+      }
+
       // ===========================================
       // 5. Cálculos da comissão (LÓGICA OFICIAL)
       // ===========================================
