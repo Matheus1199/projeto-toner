@@ -20,7 +20,6 @@ document.addEventListener("DOMContentLoaded", () => {
   const grupoBaixa = document.getElementById("grupoBaixa");
   const fieldValorBaixa = document.getElementById("fieldValorBaixa");
   const fieldDataBaixa = document.getElementById("fieldDataBaixa");
-  const fieldContaBaixa = document.getElementById("fieldContaBaixa");
   const selectFilter = document.getElementById("pagrec-filter");
 
   // formatações
@@ -185,7 +184,6 @@ document.addEventListener("DOMContentLoaded", () => {
       fieldDataBaixa.value = rec.Data_Baixa
         ? fmtDataISOtoInput(rec.Data_Baixa)
         : "";
-      fieldContaBaixa.value = rec.Conta ?? "";
 
       // exibe/oculta grupo
       atualizarCamposBaixa();
@@ -230,7 +228,7 @@ document.addEventListener("DOMContentLoaded", () => {
       Baixa: fieldBaixa.checked ? 1 : 0,
       Valor_Baixa: fieldBaixa.checked ? fieldValorBaixa.value || null : null,
       Data_Baixa: fieldBaixa.checked ? fieldDataBaixa.value || null : null,
-      Conta: fieldBaixa.checked ? fieldContaBaixa.value || null : null,
+      Conta: fieldBaixa.checked ? 1 : null
     };
 
     const id = fieldId.value;
@@ -272,35 +270,11 @@ document.addEventListener("DOMContentLoaded", () => {
       // limpa os campos
       fieldValorBaixa.value = "";
       fieldDataBaixa.value = "";
-      fieldContaBaixa.value = "";
     }
   }
 
   fieldBaixa.addEventListener("change", atualizarCamposBaixa);
 
-  async function carregarContas() {
-    const select = document.getElementById("fieldContaBaixa");
-    select.innerHTML = `<option value="">Selecione...</option>`;
-
-    try {
-      const res = await fetch("/contas/listar");
-      if (!res.ok) throw new Error("Erro ao buscar contas");
-
-      const contas = await res.json();
-
-      contas.forEach((c) => {
-        const opt = document.createElement("option");
-        opt.value = c.Id_Conta;
-        opt.textContent = `${c.Nome}`;
-        select.appendChild(opt);
-      });
-    } catch (err) {
-      console.error(err);
-      alert("Erro ao carregar contas.");
-    }
-  }
-
   // inicializa lista
-  carregarContas();
   carregarPagRec();
 });

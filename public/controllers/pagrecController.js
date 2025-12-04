@@ -122,7 +122,7 @@ module.exports = {
         .input("baixa", dados.Baixa)
         .input("valor_baixa", dados.Valor_Baixa)
         .input("data_baixa", dados.Data_Baixa)
-        .input("conta", dados.Baixa ? dados.Conta : null) // <--- AQUI ESTÁ O AJUSTE
+        .input("conta", dados.Baixa ? 1 : null) 
         .query(`
       UPDATE Tbl_PagRec
       SET 
@@ -159,7 +159,7 @@ module.exports = {
           if (dados.Conta) {
             await pool
               .request()
-              .input("conta", dados.Conta)
+              .input("conta", 1)
               .input("valor", valor).query(`
                     UPDATE Tbl_Contas
                     SET Saldo = Saldo + @valor
