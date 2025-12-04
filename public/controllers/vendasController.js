@@ -105,6 +105,7 @@ module.exports = {
         }
 
         const transaction = new sql.Transaction(pool);
+        const NF = req.body.NF ? 1 : 0;
 
         try {
             await transaction.begin();
@@ -122,7 +123,7 @@ module.exports = {
                 .input("NDoc", sql.VarChar(50), NDoc || '')
                 .input("Cond_Pagamento", sql.VarChar(50), Cond_Pagamento || '')
                 .input("Obs", sql.VarChar(255), Obs || '')
-                .input("NF", sql.Bit, 0)
+                .input("NF", sql.Bit, NF)
                 .query(`
                     INSERT INTO Tbl_Pedidos
                     (Data, Cod_Cliente, Valor_Total, Valor_Frete, Custo_Total, Lucro_Total, NDoc, Cond_Pagamento, Obs, NF)
