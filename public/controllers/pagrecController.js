@@ -155,35 +155,27 @@ module.exports = {
         const operacaoId = infoLanc.recordset[0].Id_Operacao;
 
         if (tipoLanc === 2) {
-          // A RECEBER → SOMA na conta selecionada no modal
-          if (dados.Conta) {
-            await pool
-              .request()
-              .input("conta", 1)
-              .input("valor", valor).query(`
-                    UPDATE Tbl_Contas
-                    SET Saldo = Saldo + @valor
-                    WHERE Id_Conta = @conta
-                `);
-          }
 
-          // (2) DEVOLVER O CUSTO PARA A CONTA 1 (Barsotti)
           const pedInfo = await pool.request().input("p", operacaoId).query(`
-                SELECT Valor_Total, Custo_Total
-                FROM Tbl_Pedidos
-                WHERE Cod_Pedido = @p
-            `);
+    SELECT Valor_Total, Custo_Total, Valor_Frete
+    FROM Tbl_Pedidos
+    WHERE Cod_Pedido = @p
+`);
 
           if (pedInfo.recordset.length > 0) {
             const ped2 = pedInfo.recordset[0];
             const fator2 = valor / ped2.Valor_Total;
-            const custoParcela2 = ped2.Custo_Total * fator2;
 
-            await pool.request().input("valor", custoParcela2).query(`
-                UPDATE Tbl_Contas
-                SET Saldo = Saldo + @valor
-                WHERE Id_Conta = 1
-              `);
+            const custoProporcional = ped2.Custo_Total * fator2;
+            const freteProporcional = (ped2.Valor_Frete || 0) * fator2;
+
+            const custoTotal = custoProporcional + freteProporcional;
+
+            await pool.request().input("valor", custoTotal).query(`
+      UPDATE Tbl_Contas
+      SET Saldo = Saldo + @valor
+      WHERE Id_Conta = 1
+  `);
           }
         } else if (tipoLanc === 1) {
           // A PAGAR → DESCONTA da conta Barsotti (1)
