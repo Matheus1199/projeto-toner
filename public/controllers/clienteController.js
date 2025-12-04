@@ -73,15 +73,16 @@ module.exports = {
         const itensResult = await pool
           .request()
           .input("Cod_Pedido", sql.Int, compra.Cod_Pedido).query(`
-                    SELECT 
-                        I.Quantidade,
-                        T.Modelo,
-                        T.Marca,
-                        T.Tipo
-                    FROM Tbl_PedidosItens I
-                    INNER JOIN Tbl_Toner T ON T.Cod_Produto = I.Cod_Toner
-                    WHERE I.Cod_Pedido = @Cod_Pedido
-                `);
+        SELECT 
+            I.Quantidade,
+            I.Valor_Venda,
+            T.Modelo,
+            T.Marca,
+            T.Tipo
+        FROM Tbl_PedidosItens I
+        INNER JOIN Tbl_Toner T ON T.Cod_Produto = I.Cod_Toner
+        WHERE I.Cod_Pedido = @Cod_Pedido
+    `);
 
         compras.push({
           ...compra,
@@ -89,9 +90,25 @@ module.exports = {
         });
       }
 
+      // Histórico completo de toners já vendidos para este cliente
+      const historicoResult = await pool
+        .request()
+        .input("id", sql.Int, cliente.Id_cliente).query(`
+        SELECT 
+            T.Modelo,
+            SUM(I.Quantidade) AS QuantidadeTotal
+        FROM Tbl_PedidosItens I
+        INNER JOIN Tbl_Pedidos P ON P.Cod_Pedido = I.Cod_Pedido
+        INNER JOIN Tbl_Toner T ON T.Cod_Produto = I.Cod_Toner
+        WHERE P.Cod_Cliente = @id
+        GROUP BY T.Modelo
+        ORDER BY QuantidadeTotal DESC
+    `);
+
       res.json({
         cliente,
         compras,
+        historico: historicoResult.recordset,
       });
     } catch (error) {
       console.error("Erro ao pesquisar cliente:", error);

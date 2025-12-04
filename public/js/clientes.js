@@ -62,13 +62,16 @@ document.addEventListener("DOMContentLoaded", () => {
 
             // Preencher as últimas 5 compras
             for (const compra of compras) {
-              // monta string dos toners ex:
-              // "HP 12A (1), Brother 750 (2)"
               const listaToners =
                 compra.itens && compra.itens.length > 0
                   ? compra.itens
-                      .map((i) => `${i.Modelo} (${i.Quantidade})`)
-                      .join(", ")
+                      .map(
+                        (i) =>
+                          `${i.Modelo} (${i.Quantidade} un • R$ ${Number(
+                            i.Valor_Venda
+                          ).toFixed(2)})`
+                      )
+                      .join("<br>")
                   : "-";
 
               const tr = document.createElement("tr");
@@ -88,6 +91,25 @@ document.addEventListener("DOMContentLoaded", () => {
         <td class="py-3 border-b text-center text-gray-700">${listaToners}</td>
     `;
               tabelaCompras.appendChild(tr);
+
+              // ==========================
+              // Exibir histórico em blocos
+              // ==========================
+              const blocos = document.getElementById("blocosHistorico");
+              blocos.innerHTML = "";
+
+              data.historico.forEach((item) => {
+                const div = document.createElement("div");
+                div.className =
+                  "p-4 rounded-lg shadow-md bg-gray-100 text-center border hover:bg-gray-200 transition";
+
+                div.innerHTML = `
+        <p class="font-bold text-gray-800 text-sm leading-tight">${item.Modelo}</p>
+        <p class="text-xl font-semibold text-blue-700 mt-1">${item.QuantidadeTotal}</p>
+    `;
+
+                blocos.appendChild(div);
+              });
             }
 
         } catch (err) {
