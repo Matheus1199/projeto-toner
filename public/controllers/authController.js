@@ -15,24 +15,17 @@ module.exports = {
       if (result.recordset.length > 0) {
         const user = result.recordset[0];
 
-        // 🔑 SALVA O TOKEN NA SESSÃO
-        req.session.usuario = {
-          usuario: user.usuario,
-          token: user.token,
-        };
-
+        // 🔥 SALVAR VARIÁVEIS DE SESSÃO
+        req.session.usuario = user.usuario;
+        req.session.token = user.token;
         req.session.ultimoAcesso = Date.now();
 
-        return res.json({
-          success: true,
-          token: user.token,
-        });
+        return res.json({ success: true });
       }
 
-      return res.status(401).json({
-        success: false,
-        message: "Credenciais inválidas.",
-      });
+      return res
+        .status(401)
+        .json({ success: false, message: "Credenciais inválidas." });
     } catch (error) {
       console.error("Erro no login:", error);
       res.status(500).json({ error: "Erro interno no servidor." });

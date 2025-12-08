@@ -21,52 +21,14 @@ app.use(
     resave: false,
     saveUninitialized: false,
     cookie: {
-      maxAge: 30 * 60 * 1000,
+      maxAge: 30 * 60 * 1000, // 30 minutos
       httpOnly: true,
     },
   })
 );
 
 // =====================
-// SERVE ARQUIVOS ESTÁTICOS (AGORA NO LUGAR CERTO)
-// =====================
-app.use(express.static(path.join(__dirname, "public")));
-
-// =====================
-// 🔐 MIDDLEWARE LOGIN + INATIVIDADE
-// =====================
-function authMiddleware(req, res, next) {
-  const rotasLiberadas = ["/login"];
-
-  if (rotasLiberadas.includes(req.path)) {
-    return next();
-  }
-
-  // 🔒 Verifica se existe sessão e token
-  if (!req.session.usuario || !req.session.usuario.token) {
-    return res.redirect("/login");
-  }
-
-  // Controle de inatividade
-  const agora = Date.now();
-  if (!req.session.ultimoAcesso) {
-    req.session.ultimoAcesso = agora;
-  } else {
-    if (agora - req.session.ultimoAcesso > 15 * 60 * 1000) {
-      req.session.destroy(() => res.redirect("/login?expirou=1"));
-      return;
-    }
-    req.session.ultimoAcesso = agora;
-  }
-
-  next();
-}
-
-
-app.use(authMiddleware);
-
-// =====================
-// BLOQUEIO DE HTML
+// BLOQUEIO DE ARQUIVOS HTML (ANTES DO STATIC)
 // =====================
 app.use((req, res, next) => {
   if (req.path.endsWith(".html") && req.path !== "/login") {
@@ -78,9 +40,52 @@ app.use((req, res, next) => {
 });
 
 // =====================
-// BANCO E ROTAS (SEU CÓDIGO ORIGINAL)
+// SERVE ARQUIVOS ESTÁTICOS (img, css, js)
 // =====================
+app.use(
+  express.static(path.join(__dirname, "public"), {
+    setHeaders: (res, filePath) => {
+      if (filePath.endsWith(".html")) {
+        res.setHeader("Cache-Control", "no-store");
+      }
+    },
+  })
+);
 
+// =====================
+// 🔐 MIDDLEWARE DE AUTENTICAÇÃO + INATIVIDADE
+// =====================
+function authMiddleware(req, res, next) {
+  const rotasLiberadas = ["/login"];
+
+  if (rotasLiberadas.includes(req.path)) {
+    return next();
+  }
+
+  if (!req.session.usuario) {
+    return res.redirect("/login");
+  }
+
+  const agora = Date.now();
+  const limite = 15 * 60 * 1000; // 15 minutos
+
+  if (req.session.ultimoAcesso && agora - req.session.ultimoAcesso > limite) {
+    req.session.destroy(() => {
+      return res.redirect("/login?expirou=1");
+    });
+    return;
+  }
+
+  req.session.ultimoAcesso = agora;
+
+  next();
+}
+
+app.use(authMiddleware);
+
+// =====================
+// BANCO (SEU CÓDIGO ORIGINAL)
+// =====================
 async function initDatabase() {
   try {
     const pool = await sql.connect(config);
@@ -95,7 +100,9 @@ async function initDatabase() {
 
 initDatabase();
 
-// ROTAS
+// =====================
+// ROTAS (SUAS ROTAS ORIGINAIS)
+// =====================
 app.use("/login", require("./public/routes/auth.routes"));
 app.use("/toners", require("./public/routes/toners.routes"));
 app.use("/clientes", require("./public/routes/clientes.routes"));
@@ -107,6 +114,9 @@ app.use("/estoque", require("./public/routes/estoque.routes"));
 app.use("/pagrec", require("./public/routes/pagrec.routes"));
 app.use("/contas", require("./public/routes/contas.routes"));
 
+// =====================
+// SERVIDOR
+// =====================
 const PORT = 3000;
 app.listen(PORT, () =>
   console.log(`Servidor rodando em http://localhost:${PORT}`)
