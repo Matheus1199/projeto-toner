@@ -28,46 +28,25 @@ app.use(
 );
 
 // =====================
-// BLOQUEIO DE ARQUIVOS HTML (ANTES DO STATIC)
-// =====================
-app.use((req, res, next) => {
-  if (req.path.endsWith(".html") && req.path !== "/login") {
-    if (!req.session.usuario) {
-      return res.redirect("/login");
-    }
-  }
-  next();
-});
-
-// =====================
-// SERVE ARQUIVOS ESTÁTICOS (img, css, js)
-// =====================
-app.use(
-  express.static(path.join(__dirname, "public"), {
-    setHeaders: (res, filePath) => {
-      if (filePath.endsWith(".html")) {
-        res.setHeader("Cache-Control", "no-store");
-      }
-    },
-  })
-);
-
-// =====================
 // 🔐 MIDDLEWARE DE AUTENTICAÇÃO + INATIVIDADE
 // =====================
 function authMiddleware(req, res, next) {
-  const rotasLiberadas = ["/login"];
+  const rotasLiberadas = ["/login", "/login/", "/login.html"];
 
-  if (rotasLiberadas.includes(req.path)) {
+  // rota liberada
+  if (rotasLiberadas.includes(req.path) || req.path.startsWith("/login")) {
     return next();
   }
 
+
+  // se não estiver logado, volta ao login
   if (!req.session.usuario) {
     return res.redirect("/login");
   }
 
+  // controle de inatividade
   const agora = Date.now();
-  const limite = 15 * 60 * 1000; // 15 minutos
+  const limite = 15 * 60 * 1000;
 
   if (req.session.ultimoAcesso && agora - req.session.ultimoAcesso > limite) {
     req.session.destroy(() => {
@@ -81,10 +60,43 @@ function authMiddleware(req, res, next) {
   next();
 }
 
-app.use(authMiddleware);
+// =====================
+// BLOQUEIO DE ARQUIVOS HTML
+// =====================
+app.use((req, res, next) => {
+  if (req.path.endsWith(".html") && req.path !== "/login") {
+    if (!req.session.usuario) {
+      return res.redirect("/login");
+    }
+  }
+  next();
+});
 
 // =====================
-// BANCO (SEU CÓDIGO ORIGINAL)
+// ARQUIVOS ESTÁTICOS
+// =====================
+app.use(
+  express.static(path.join(__dirname, "public"), {
+    setHeaders: (res, filePath) => {
+      if (filePath.endsWith(".html")) {
+        res.setHeader("Cache-Control", "no-store");
+      }
+    },
+  })
+);
+
+app.use(authMiddleware);
+
+// redirecionamento padrão
+app.get("/", (req, res) => {
+  if (req.session.usuario) {
+    return res.redirect("/dashboard.html");
+  }
+  return res.redirect("/login");
+});
+
+// =====================
+// BANCO
 // =====================
 async function initDatabase() {
   try {
@@ -101,7 +113,7 @@ async function initDatabase() {
 initDatabase();
 
 // =====================
-// ROTAS (SUAS ROTAS ORIGINAIS)
+// ROTAS
 // =====================
 app.use("/login", require("./public/routes/auth.routes"));
 app.use("/toners", require("./public/routes/toners.routes"));
