@@ -1,9 +1,9 @@
 module.exports = {
-    listar: async (req, res) => {
-        const pool = req.app.get("db");
+  listar: async (req, res) => {
+    const pool = req.app.get("db");
 
-        try {
-            const result = await pool.request().query(`
+    try {
+      const result = await pool.request().query(`
                 SELECT TOP 10 
                     C.Cod_Compra,
                     C.Data_Compra,
@@ -18,141 +18,148 @@ module.exports = {
                 ORDER BY C.Cod_Compra DESC
             `);
 
-            res.json(result.recordset);
+      res.json(result.recordset);
+    } catch (err) {
+      console.error("Erro ao listar compras:", err);
+      res.status(500).json({ error: "Erro ao listar compras." });
+    }
+  },
 
-        } catch (err) {
-            console.error("Erro ao listar compras:", err);
-            res.status(500).json({ error: "Erro ao listar compras." });
-        }
-    },
+  finalizar: async (req, res) => {
+    const pool = req.app.get("db");
+    const sql = req.app.get("sql");
 
-    finalizar: async (req, res) => {
-        const pool = req.app.get("db");
-        const sql = req.app.get("sql");
+    let {
+      Cod_Fornecedor,
+      NDocumento,
+      Cond_Pagamento,
+      Obs,
+      carrinho,
+      financeiro,
+      semFinanceiro,
+    } = req.body;
 
-        let {
-            Cod_Fornecedor,
-            NDocumento,
-            Cond_Pagamento,
-            Obs,
-            carrinho,
-            financeiro
-        } = req.body;
+    // =========================
+    // CÁLCULOS BÁSICOS (sempre)
+    // =========================
 
-        // =========================
-        // VALIDAÇÕES
-        // =========================
+    const totalItens = carrinho.reduce(
+      (sum, item) => sum + item.valor_compra * item.quantidade,
+      0
+    );
 
-        if (!carrinho || !carrinho.length)
-            return res.status(400).json({ error: "Adicione ao menos um item." });
+    const totalFin = financeiro.reduce((sum, f) => sum + Number(f.valor), 0);
 
-        if (!financeiro || !financeiro.length)
-            return res.status(400).json({ error: "Você precisa lançar ao menos um título financeiro." });
+    // =========================
+    // VALIDAÇÕES
+    // =========================
 
-        const totalItens = carrinho.reduce((sum, item) =>
-            sum + (item.valor_compra * item.quantidade), 0);
+    if (!carrinho || !carrinho.length)
+      return res.status(400).json({ error: "Adicione ao menos um item." });
 
-        const totalFin = financeiro.reduce((sum, f) =>
-            sum + Number(f.valor), 0);
+    // Só valida financeiro se NÃO for semFinanceiro
+    if (!semFinanceiro) {
+      if (!financeiro || !financeiro.length)
+        return res.status(400).json({
+          error:
+            "Você precisa lançar ao menos um título financeiro ou ativar 'Lançar sem Financeiro'.",
+        });
 
-        // Arredondamento correto
-        if (Number(totalItens.toFixed(2)) !== Number(totalFin.toFixed(2))) {
-            return res.status(400).json({
-                error: "O valor financeiro não confere com o valor total da compra."
-            });
-        }
+      if (Number(totalItens.toFixed(2)) !== Number(totalFin.toFixed(2))) {
+        return res.status(400).json({
+          error: "O valor financeiro não confere com o valor total da compra.",
+        });
+      }
+    }
 
-        // =========================
-        // TRANSAÇÃO SQL
-        // =========================
+    // =========================
+    // TRANSAÇÃO SQL
+    // =========================
 
-        const transaction = new sql.Transaction(pool);
+    const transaction = new sql.Transaction(pool);
 
-        try {
-            await transaction.begin();
-            const request = new sql.Request(transaction);
+    try {
+      await transaction.begin();
+      const request = new sql.Request(transaction);
 
-            // 1) Inserir compra principal
-            const compraResult = await request
-                .input("Data_Compra", sql.DateTime, new Date())
-                .input("Cod_Fornecedor", sql.Int, Cod_Fornecedor)
-                .input("NDocumento", sql.VarChar(50), NDocumento)
-                .input("Valor_Total", sql.Decimal(18, 2), totalItens)
-                .input("Cond_Pagamento", sql.VarChar(50), Cond_Pagamento)
-                .input("Obs", sql.VarChar(255), Obs)
-                .query(`
-                    INSERT INTO Tbl_Compras 
-                    (Data_Compra, Cod_Fornecedor, NDocumento, Valor_Total, Cond_Pagamento, Obs)
-                    OUTPUT INSERTED.Cod_Compra
-                    VALUES (@Data_Compra, @Cod_Fornecedor, @NDocumento, @Valor_Total, @Cond_Pagamento, @Obs)
+      // 1) Inserir compra principal
+      const compraResult = await request
+        .input("Data_Compra", sql.DateTime, new Date())
+        .input("Cod_Fornecedor", sql.Int, Cod_Fornecedor)
+        .input("NDocumento", sql.VarChar(50), NDocumento)
+        .input("Valor_Total", sql.Decimal(18, 2), totalItens)
+        .input("Cond_Pagamento", sql.VarChar(50), Cond_Pagamento)
+        .input("Obs", sql.VarChar(255), Obs).query(`
+                INSERT INTO Tbl_Compras 
+                (Data_Compra, Cod_Fornecedor, NDocumento, Valor_Total, Cond_Pagamento, Obs)
+                OUTPUT INSERTED.Cod_Compra
+                VALUES (@Data_Compra, @Cod_Fornecedor, @NDocumento, @Valor_Total, @Cond_Pagamento, @Obs)
+            `);
+
+      const Cod_Compra = compraResult.recordset[0].Cod_Compra;
+
+      // 2) Inserir itens
+      for (const item of carrinho) {
+        await new sql.Request(transaction)
+          .input("Cod_Compra", sql.Int, Cod_Compra)
+          .input("Cod_Toner", sql.Int, item.cod_toner)
+          .input("Quantidade", sql.Int, item.quantidade)
+          .input("Valor_Compra", sql.Decimal(18, 2), item.valor_compra)
+          .input("Saldo", sql.Int, item.quantidade).query(`
+                    INSERT INTO Tbl_ComprasItens 
+                    (Cod_Compra, Cod_Toner, Quantidade, Valor_Compra, Saldo)
+                    VALUES 
+                    (@Cod_Compra, @Cod_Toner, @Quantidade, @Valor_Compra, @Saldo)
                 `);
+      }
 
-            const Cod_Compra = compraResult.recordset[0].Cod_Compra;
-
-            // 2) Inserir itens da compra
-            for (const item of carrinho) {
-                await new sql.Request(transaction)
-                    .input("Cod_Compra", sql.Int, Cod_Compra)
-                    .input("Cod_Toner", sql.Int, item.cod_toner)
-                    .input("Quantidade", sql.Int, item.quantidade)
-                    .input("Valor_Compra", sql.Decimal(18, 2), item.valor_compra)
-                    .input("Saldo", sql.Int, item.quantidade)
-                    .query(`
-                        INSERT INTO Tbl_ComprasItens 
-                        (Cod_Compra, Cod_Toner, Quantidade, Valor_Compra, Saldo)
-                        VALUES 
-                        (@Cod_Compra, @Cod_Toner, @Quantidade, @Valor_Compra, @Saldo)
-                    `);
-            }
-
-            // 3) Inserir financeiro (Pagamentos a Pagar)
-            for (const fin of financeiro) {
-                await new sql.Request(transaction)
-                    .input("Tipo", sql.Int, 1)            // 1 = compra
-                    .input("Operacao", sql.Int, 1)        // 1 = compra
-                    .input("Id_Operacao", sql.Int, Cod_Compra)
-                    .input("Data_Vencimento", sql.DateTime, new Date(fin.vencimento))
-                    .input("Valor", sql.Decimal(18, 2), fin.valor)
-                    .input("EAN", sql.VarChar(100), fin.ean || null)
-                    .input("Conta", sql.Int, fin.conta || null)
-                    .input("Valor_Baixa", sql.Decimal(18, 2), null)
-                    .input("Data_Baixa", sql.DateTime, null)
-                    .input("Obs", sql.VarChar(255), fin.obs || null)
-                    .input("Baixa", sql.Bit, 0)
-                    .query(`
+      // 3) Inserir financeiro (somente se não for semFinanceiro)
+      if (!semFinanceiro) {
+        for (const fin of financeiro) {
+          await new sql.Request(transaction)
+            .input("Tipo", sql.Int, 1)
+            .input("Operacao", sql.Int, 1)
+            .input("Id_Operacao", sql.Int, Cod_Compra)
+            .input("Data_Vencimento", sql.DateTime, new Date(fin.vencimento))
+            .input("Valor", sql.Decimal(18, 2), fin.valor)
+            .input("EAN", sql.VarChar(100), fin.ean || null)
+            .input("Conta", sql.Int, fin.conta || null)
+            .input("Valor_Baixa", sql.Decimal(18, 2), null)
+            .input("Data_Baixa", sql.DateTime, null)
+            .input("Obs", sql.VarChar(255), fin.obs || null)
+            .input("Baixa", sql.Bit, 0).query(`
                         INSERT INTO Tbl_PagRec
                         (Tipo, Operacao, Id_Operacao, Data_Vencimento, Valor, EAN, Conta, Valor_Baixa, Data_Baixa, Obs, Baixa)
                         VALUES
                         (@Tipo, @Operacao, @Id_Operacao, @Data_Vencimento, @Valor, @EAN, @Conta, @Valor_Baixa, @Data_Baixa, @Obs, @Baixa)
                     `);
-            }
-
-            // Commit
-            await transaction.commit();
-
-            // Retornar dados completos da compra
-            const dadosCompra = await pool.request()
-                .input("Cod_Compra", sql.Int, Cod_Compra)
-                .query(`
-                    SELECT 
-                        C.Cod_Compra,
-                        C.Data_Compra,
-                        C.NDocumento,
-                        C.Valor_Total,
-                        C.Cond_Pagamento,
-                        C.Obs,
-                        F.Nome AS Nome_Fornecedor
-                    FROM Tbl_Compras C
-                    INNER JOIN Tbl_Fornecedores F ON F.Id_Fornecedor = C.Cod_Fornecedor
-                    WHERE C.Cod_Compra = @Cod_Compra
-                `);
-
-            res.json(dadosCompra.recordset[0]);
-
-        } catch (error) {
-            console.error("Erro ao finalizar compra:", error);
-            await transaction.rollback();
-            res.status(500).json({ error: "Erro ao finalizar compra." });
         }
+      }
+
+      await transaction.commit();
+
+      // Retornar dados para o front
+      const dadosCompra = await pool
+        .request()
+        .input("Cod_Compra", sql.Int, Cod_Compra).query(`
+                SELECT 
+                    C.Cod_Compra,
+                    C.Data_Compra,
+                    C.NDocumento,
+                    C.Valor_Total,
+                    C.Cond_Pagamento,
+                    C.Obs,
+                    F.Nome AS Nome_Fornecedor
+                FROM Tbl_Compras C
+                INNER JOIN Tbl_Fornecedores F ON F.Id_Fornecedor = C.Cod_Fornecedor
+                WHERE C.Cod_Compra = @Cod_Compra
+            `);
+
+      res.json(dadosCompra.recordset[0]);
+    } catch (error) {
+      console.error("Erro ao finalizar compra:", error);
+      await transaction.rollback();
+      res.status(500).json({ error: "Erro ao finalizar compra." });
     }
+  }
 };
