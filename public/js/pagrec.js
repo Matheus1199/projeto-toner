@@ -228,9 +228,11 @@ document.addEventListener("DOMContentLoaded", () => {
       Valor: fieldValor.value ? parseFloat(fieldValor.value) : 0,
       Obs: fieldObs.value || null,
       Baixa: fieldBaixa.checked ? 1 : 0,
-      Valor_Baixa: fieldBaixa.checked ? fieldValorBaixa.value || null : null,
+      Valor_Baixa: fieldBaixa.checked
+        ? parseFloat(fieldValorBaixa.value) || null
+        : null,
       Data_Baixa: fieldBaixa.checked ? fieldDataBaixa.value || null : null,
-      Conta: fieldBaixa.checked ? 1 : null
+      Conta: fieldBaixa.checked ? 1 : null,
     };
 
     const id = fieldId.value;
