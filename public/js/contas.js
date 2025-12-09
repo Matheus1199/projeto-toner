@@ -66,4 +66,20 @@ async function carregarContas() {
             }
         });
 
+async function carregarSaldoTotal() {
+  try {
+    const res = await fetch("/contas/soma");
+    const data = await res.json();
+
+    document.getElementById("saldoTotal").textContent =
+      data.total.toLocaleString("pt-BR", {
+        style: "currency",
+        currency: "BRL",
+      });
+  } catch (err) {
+    console.error("Erro ao carregar saldo total:", err);
+  }
+}
+
 carregarContas();
+carregarSaldoTotal();

@@ -76,5 +76,20 @@ module.exports = {
             console.error("Erro ao lançar operação manual:", err);
             return res.status(500).json({ error: "Erro ao lançar operação manual." });
         }
+    },
+
+    soma: async (req, res) => {
+    const pool = req.app.get("db");
+    const sql = req.app.get("sql");
+
+    try {
+        const result = await pool.request()
+            .query("SELECT SUM(Saldo) AS TotalSaldo FROM Tbl_Contas WHERE Ativo = 1");
+
+        res.json({ total: result.recordset[0].TotalSaldo || 0 });
+    } catch (err) {
+        console.error("Erro ao somar saldos:", err);
+        res.status(500).send("Erro ao somar saldos");
+        }
     }
 };
