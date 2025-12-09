@@ -55,11 +55,13 @@ document.addEventListener("DOMContentLoaded", () => {
       // CORREÇÃO DEFINITIVA
       // ==========================
       if (item.Locacao == 1) {
-        categoria = "locacao"; // SOMENTE LOCAÇÃO
+        categoria = "locacao"; // SEMPRE prevalece
       } else if (tipoBase === "receber") {
-        categoria = "areceber"; // SOMENTE A RECEBER
+        categoria = "areceber";
       } else if (tipoBase === "pagar") {
-        categoria = "apagar"; // SOMENTE A PAGAR
+        categoria = "apagar";
+      } else {
+        categoria = "-";
       }
 
       tr.dataset.category = categoria;
@@ -101,7 +103,7 @@ document.addEventListener("DOMContentLoaded", () => {
     // LOCAÇÃO (Locacao == 1)
     // ===============================
     (data.locacao || []).forEach((lc) => {
-      const row = montarLinha(lc, "receber");
+      const row = montarLinha(lc, "locacao"); 
       tblPagRecBody.appendChild(row);
     });
 
