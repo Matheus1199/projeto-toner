@@ -82,40 +82,66 @@ module.exports = {
   },
 
   resumoPagRec: async (req, res) => {
-        try {
-            const pool = req.app.get("db");
+    try {
+        const pool = req.app.get("db");
 
-            const queryPeriodos = `
-                SELECT 
-                    Tipo,
-                    CASE
-                        WHEN Data_Vencimento <= DATEADD(day, 7, GETDATE()) THEN '7'
-                        WHEN Data_Vencimento <= DATEADD(day, 14, GETDATE()) THEN '14'
-                        WHEN Data_Vencimento <= DATEADD(day, 21, GETDATE()) THEN '21'
-                        ELSE 'MES'
-                    END AS Periodo,
-                    SUM(Valor) AS Total
-                FROM Tbl_PagRec
-                WHERE Baixa = 0 
-                GROUP BY Tipo,
-                    CASE
-                        WHEN Data_Vencimento <= DATEADD(day, 7, GETDATE()) THEN '7'
-                        WHEN Data_Vencimento <= DATEADD(day, 14, GETDATE()) THEN '14'
-                        WHEN Data_Vencimento <= DATEADD(day, 21, GETDATE()) THEN '21'
-                        ELSE 'MES'
-                    END;
-            `;
+        const query = `
+            SELECT 
+                -- 7 DIAS
+                SUM(CASE WHEN Data_Vencimento BETWEEN DATEADD(DAY, -1, GETDATE()) AND DATEADD(DAY, +6, GETDATE())
+                         AND Tipo = 1 AND Operacao = 1 AND Baixa = 0 
+                    THEN Valor ELSE 0 END) AS Pagar7Dias,
 
-            const periodos = await pool.request().query(queryPeriodos);
+                SUM(CASE WHEN Data_Vencimento BETWEEN DATEADD(DAY, -1, GETDATE()) AND DATEADD(DAY, +6, GETDATE())
+                         AND Tipo = 2 AND Operacao = 2 AND Baixa = 0 
+                    THEN Valor ELSE 0 END) AS Receber7Dias,
 
-            res.json({
-                ok: true,
-                periodos: periodos.recordset
-            });
 
-        } catch (err) {
-            console.log("Erro Dashboard", err);
-            res.status(500).json({ ok: false, error: err });
-        }
+                -- 14 DIAS
+                SUM(CASE WHEN Data_Vencimento BETWEEN DATEADD(DAY, -1, GETDATE()) AND DATEADD(DAY, +13, GETDATE())
+                         AND Tipo = 1 AND Operacao = 1 AND Baixa = 0
+                    THEN Valor ELSE 0 END) AS Pagar14Dias,
+
+                SUM(CASE WHEN Data_Vencimento BETWEEN DATEADD(DAY, -1, GETDATE()) AND DATEADD(DAY, +13, GETDATE())
+                         AND Tipo = 2 AND Operacao = 2 AND Baixa = 0
+                    THEN Valor ELSE 0 END) AS Receber14Dias,
+
+
+                -- 21 DIAS
+                SUM(CASE WHEN Data_Vencimento BETWEEN DATEADD(DAY, -1, GETDATE()) AND DATEADD(DAY, +20, GETDATE())
+                         AND Tipo = 1 AND Operacao = 1 AND Baixa = 0
+                    THEN Valor ELSE 0 END) AS Pagar21Dias,
+
+                SUM(CASE WHEN Data_Vencimento BETWEEN DATEADD(DAY, -1, GETDATE()) AND DATEADD(DAY, +20, GETDATE())
+                         AND Tipo = 2 AND Operacao = 2 AND Baixa = 0
+                    THEN Valor ELSE 0 END) AS Receber21Dias,
+
+                -- TOTAL
+                SUM(CASE WHEN Tipo = 1 AND Operacao = 1 AND Baixa = 0 
+                    THEN Valor ELSE 0 END) AS PagarTotal,
+
+                SUM(CASE WHEN Tipo = 2 AND Operacao = 2 AND Baixa = 0 
+                    THEN Valor ELSE 0 END) AS ReceberTotal,
+
+                SUM(CASE WHEN Tipo = 2 AND Operacao = 2 AND Baixa = 0 
+                    THEN Valor ELSE 0 END)
+                -
+                SUM(CASE WHEN Tipo = 1 AND Operacao = 1 AND Baixa = 0 
+                    THEN Valor ELSE 0 END) AS SaldoTotal
+
+            FROM Tbl_PagRec;
+        `;
+
+        const result = await pool.request().query(query);
+
+        res.json({
+            ok: true,
+            resumo: result.recordset[0]
+        });
+
+    } catch (err) {
+        console.log("Erro Dashboard resumoPagRec:", err);
+        res.status(500).json({ ok: false, error: err });
     }
+}
 };

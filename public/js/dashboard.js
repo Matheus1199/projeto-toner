@@ -171,53 +171,39 @@ async function carregarResumo() {
 
     if (!data.ok) return;
 
-    const periodos = {
-      7: { r: 0, p: 0 },
-      14: { r: 0, p: 0 },
-      21: { r: 0, p: 0 },
-    };
+    const r = data.resumo; // simplificar referência
 
-    data.periodos.forEach((item) => {
-      const periodo = item.Periodo;
+    // ======== 7 DIAS ========
+    document.getElementById("r7").innerText = (
+      r.Receber7Dias || 0
+    ).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
-      // Ignora o período MES, porque não usamos mais
-      if (!periodos[periodo]) return;
+    document.getElementById("p7").innerText = (
+      r.Pagar7Dias || 0
+    ).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
-      const tipo = item.Tipo === 1 ? "r" : "p";
-      periodos[periodo][tipo] = item.Total;
-    });
+    // ======== 14 DIAS ========
+    document.getElementById("r14").innerText = (
+      r.Receber14Dias || 0
+    ).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
-    // Preencher no DOM
-    document.getElementById("r7").innerText = periodos["7"].r.toLocaleString(
-      "pt-BR",
-      { style: "currency", currency: "BRL" }
-    );
-    document.getElementById("p7").innerText = periodos["7"].p.toLocaleString(
-      "pt-BR",
-      { style: "currency", currency: "BRL" }
-    );
+    document.getElementById("p14").innerText = (
+      r.Pagar14Dias || 0
+    ).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
-    document.getElementById("r14").innerText = periodos["14"].r.toLocaleString(
-      "pt-BR",
-      { style: "currency", currency: "BRL" }
-    );
-    document.getElementById("p14").innerText = periodos["14"].p.toLocaleString(
-      "pt-BR",
-      { style: "currency", currency: "BRL" }
-    );
+    // ======== 21 DIAS ========
+    document.getElementById("r21").innerText = (
+      r.Receber21Dias || 0
+    ).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
-    document.getElementById("r21").innerText = periodos["21"].r.toLocaleString(
-      "pt-BR",
-      { style: "currency", currency: "BRL" }
-    );
-    document.getElementById("p21").innerText = periodos["21"].p.toLocaleString(
-      "pt-BR",
-      { style: "currency", currency: "BRL" }
-    );
+    document.getElementById("p21").innerText = (
+      r.Pagar21Dias || 0
+    ).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
   } catch (e) {
     console.log("Erro ao carregar resumo:", e);
   }
 }
+
 
 // Executa ao carregar e a cada 30s
 carregarVendasRecentes()
