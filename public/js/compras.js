@@ -39,7 +39,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const btnAddParcela = document.getElementById("btnAddParcela");
     const tbodyFinanceiro = document.getElementById("tbodyFinanceiro");
     const totalFinanceiroEl = document.getElementById("totalFinanceiro");
-
+    const fieldSemFinanceiro = document.getElementById("fieldSemFinanceiro");
     const btnSalvarCompra = document.getElementById("btnSalvarCompra");
 
     // Tabs
@@ -380,80 +380,99 @@ document.addEventListener("DOMContentLoaded", () => {
     // =========================
 
     btnSalvarCompra && btnSalvarCompra.addEventListener('click', async () => {
-        const Cod_Fornecedor = Number(selectFornecedor.value) || null;
-        const NDocumento = inputDocumento.value || '';
-        const Cond_Pagamento = inputCondPgto.value || '';
-        const Obs = inputObs.value || '';
+      const Cod_Fornecedor = Number(selectFornecedor.value) || null;
+      const NDocumento = inputDocumento.value || "";
+      const Cond_Pagamento = inputCondPgto.value || "";
+      const Obs = inputObs.value || "";
 
-        // valida itens
-        if (!Cod_Fornecedor) return alert('Selecione um fornecedor.');
-        if (carrinho.length === 0) return alert('Adicione ao menos um item na compra.');
+      // valida itens
+      if (!Cod_Fornecedor) return alert("Selecione um fornecedor.");
+      if (carrinho.length === 0)
+        return alert("Adicione ao menos um item na compra.");
 
-        // calcula totais
-        const totalItens = carrinho.reduce((acc, it) => acc + (Number(it.Subtotal) || 0), 0);
-        const totalFin = listaFinanceiro.reduce((acc, f) => acc + (Number(f.valor) || 0), 0);
+      // calcula totais
+      const totalItens = carrinho.reduce(
+        (acc, it) => acc + (Number(it.Subtotal) || 0),
+        0
+      );
+      const totalFin = listaFinanceiro.reduce(
+        (acc, f) => acc + (Number(f.valor) || 0),
+        0
+      );
 
-        // validações financeiras
+      // Se o usuário marcar "Lançar sem Financeiro", ignoramos todas as regras financeiras
+      const semFinanceiro = fieldSemFinanceiro.checked;
+
+      if (!semFinanceiro) {
+        // validações financeiras normais
         if (Number(totalFin.toFixed(2)) <= 0) {
-            // alternativo: permitir lançar sem financeiro? aqui requisitamos como obrigatório
-            return alert('Você precisa lançar ao menos um título financeiro com valor maior que 0.');
+          return alert(
+            'Você precisa lançar ao menos um título financeiro com valor maior que 0 ou marcar "Lançar sem Financeiro".'
+          );
         }
 
-        // comparação monetária com duas casas
         if (Number(totalItens.toFixed(2)) !== Number(totalFin.toFixed(2))) {
-            return alert('O total financeiro não confere com o valor total da compra. Verifique os valores.');
+          return alert(
+            "O total financeiro não confere com o valor total da compra. Verifique os valores."
+          );
         }
+      }
 
-        // montar objeto que será enviado ao backend
-        const dados = {
-            Cod_Fornecedor,
-            NDocumento,
-            Cond_Pagamento,
-            Obs,
-            carrinho: carrinho.map(it => ({
-                cod_toner: it.Cod_Produto,
-                quantidade: it.Quantidade,
-                valor_compra: Number(Number(it.ValorUnitario).toFixed(2))
+      // montar objeto que será enviado ao backend
+      const dados = {
+        Cod_Fornecedor,
+        NDocumento,
+        Cond_Pagamento,
+        Obs,
+        semFinanceiro, // envia ao backend esta flag
+        carrinho: carrinho.map((it) => ({
+          cod_toner: it.Cod_Produto,
+          quantidade: it.Quantidade,
+          valor_compra: Number(Number(it.ValorUnitario).toFixed(2)),
+        })),
+        financeiro: semFinanceiro
+          ? [] // se for sem financeiro, não envia nada
+          : listaFinanceiro.map((f) => ({
+              vencimento: f.vencimento,
+              valor: Number(Number(f.valor).toFixed(2)),
+              ean: f.ean,
+              obs: f.obs,
+              conta: f.conta || null,
+              tipo: f.tipo,
+              operacao: f.operacao,
             })),
-            financeiro: listaFinanceiro.map(f => ({
-                vencimento: f.vencimento,
-                valor: Number(Number(f.valor).toFixed(2)),
-                ean: f.ean,
-                obs: f.obs,
-                conta: f.conta || null,
-                tipo: f.tipo,
-                operacao: f.operacao
-            }))
-        };
+      };
 
-        // enviar para o servidor (apenas agora, depois de tudo preenchido)
-        try {
-            const resp = await fetch('/compras/finalizar', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(dados)
-            });
+      // enviar para o servidor (apenas agora, depois de tudo preenchido)
+      try {
+        const resp = await fetch("/compras/finalizar", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(dados),
+        });
 
-            const json = await resp.json();
+        const json = await resp.json();
 
-            if (!resp.ok) {
-                return alert(json.error || 'Erro ao registrar compra.');
-            }
-
-            // sucesso
-            compraRecemCriada = json; // pode conter Cod_Compra
-            alert('Compra registrada com sucesso! Cod_Compra: ' + (json.Cod_Compra || '—'));
-            limparEstado();
-            modalBg.classList.add('hidden');
-            listarCompras();
-
-            // (opcional) abrir aba financeiro ou exibir detalhe: você pode customizar aqui.
-            // exemplo: setActiveTab('financeiro');
-
-        } catch (err) {
-            console.error('Erro salvar compra', err);
-            alert('Erro de conexão ao salvar compra.');
+        if (!resp.ok) {
+          return alert(json.error || "Erro ao registrar compra.");
         }
+
+        // sucesso
+        compraRecemCriada = json; // pode conter Cod_Compra
+        alert(
+          "Compra registrada com sucesso! Cod_Compra: " +
+            (json.Cod_Compra || "—")
+        );
+        limparEstado();
+        modalBg.classList.add("hidden");
+        listarCompras();
+
+        // (opcional) abrir aba financeiro ou exibir detalhe: você pode customizar aqui.
+        // exemplo: setActiveTab('financeiro');
+      } catch (err) {
+        console.error("Erro salvar compra", err);
+        alert("Erro de conexão ao salvar compra.");
+      }
     });
 
     // =========================
