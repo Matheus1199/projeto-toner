@@ -1,153 +1,132 @@
-# 📦 BarsottiStock — Sistema de Controle de Estoque de Toners
 
-O **BarsottiStock** é um sistema completo de controle de estoque de toners, desenvolvido em **Node.js + SQL Server**, que permite gerenciar todo o ciclo operacional:
+# 📦 TonerStock — Sistema de Controle de Toners
 
-- Cadastro de toners  
-- Compras (entrada de estoque por lote)  
-- Pedidos/Vendas (saída de estoque)  
-- Controle de clientes e fornecedores  
-- Cálculo automático de lucro  
-- Dashboard com estatísticas  
-- Controle de saldo por lote (FIFO)
+O **TonerStock** é um sistema completo de gestão de estoque, vendas, compras e controle financeiro de toners, desenvolvido em **Node.js** com **SQL Server**.  
+Este README reflete a versão **mais recente** dos arquivos enviados e atualizados no projeto.
 
-O projeto foi criado para atender empresas que trabalham com toner, impressão e outsourcing, oferecendo rastreabilidade precisa e fluxo de estoque profissional.
+---
 
 ## 🚀 Tecnologias Utilizadas
+### **Backend**
+- Node.js
+- Express.js
+- MSSQL
+- MVC (Controllers, Routes)
 
-- **Node.js**
-- **Express**
-- **SQL Server (mssql)**
-- **JavaScript**
-- **Tailwind CSS**
-- **HTML5**
-- **Fetch API (AJAX)**
+### **Frontend**
+- HTML + TailwindCSS
+- JavaScript (Fetch API)
 
-## 🧱 Arquitetura da Aplicação
+### **Banco de Dados**
+- SQL Server
+- Tabelas integradas para estoque, vendas, compras e financeiro
 
+---
+
+## 🗂 Arquitetura do Projeto
 ```
-/public
-    /controllers  → Arquivos JS usados no frontend
-    /css, /js, /img
-/server
-    /controllers → Lógica de negócios
-    /routes      → Rotas da API
-    /config      → Conexão com SQL Server
-.env
-server.js
+projeto-toner/
+├── public/
+│   ├── controllers/
+│   ├── views/
+│   └── css/
+│
+├── src/
+│   ├── routes/
+│   ├── controllers/
+│   ├── middlewares/
+│   └── db/
+│
+└── server.js
 ```
 
-## 🗄️ Estrutura do Banco de Dados
+---
 
-### Tbl_Toner
-- Cod_Produto (PK)
-- Tipo
-- Marca
-- Modelo
-- Locação (bit)
+## 📁 Funcionalidades
+### **Clientes**
+- Cadastro, edição, ativação
+- Histórico de vendas e toners consumidos
 
-### Tbl_Compras
-- Cod_Compra (PK)
-- Data_Compra
-- Cod_Fornecedor
-- NDocumento
-- Valor_Total
-- Cond_Pagamento
+### **Toners**
+- Controle por modelo/marca/tipo
+- Estoque automático (compra → aumenta, venda → reduz)
+- Itens vinculados às compras
 
-### Tbl_ComprasItens
-- Id_ItemCompra (PK)
-- Cod_Compra (FK)
-- Cod_Toner (FK)
-- Quantidade
-- Valor_Compra
-- Saldo
+### **Compras**
+- Registro da compra e itens
+- Geração automática de contas a pagar
+- Atualização de estoque por item comprado
 
-### Tbl_Pedidos
-- Cod_Pedido (PK)
-- Data
-- Cod_Cliente
-- Valor_Total
-- Custo_Total
-- Lucro_Total
-- NDoc
-- Cond_Pagamento
-- NF
+### **Vendas**
+- Criação de pedidos e itens
+- Cálculo automático de custo, valor e lucro
+- Geração de contas a receber
 
-### Tbl_PedidosItens
-- Cod_Venda (PK)
-- Cod_Pedido (FK)
-- Cod_Cliente (FK)
-- Cod_Toner (FK)
-- Id_ItemCompra (FK)
-- Quantidade
-- Valor_Compra
-- Valor_Venda
-- Valor_Lucro
+### **Financeiro (Pagar/Receber)**
+- Baixas parciais e totais
+- Contas vinculadas
+- Dashboard financeiro consolidado
 
-### Tbl_Clientes
-- Id_Cliente (PK)
-- Nome
-- Ativo
-- Tipo
-- Id_Vendedor
-- Dat_Cad
+### **Dashboard**
+- Saldo de contas
+- Toners em locação
+- Total comprado/vendido
+- Pendências financeiras
 
-### Tbl_Fornecedores
-- Id_Fornecedor (PK)
-- Nome
-- Status
+---
 
-## 🔁 Fluxo de Funcionamento
+## 🧮 Estrutura do Banco de Dados (Resumo)
 
-### Cadastro de Toners
-Registro com tipo, marca, modelo e locação.
+### **Pedidos e Itens**
+- `Tbl_Pedidos`: Informações gerais do pedido
+- `Tbl_PedidosItens`: Itens vendidos ao cliente
 
-### Entrada de Estoque (Compras)
-Itens adicionados ao carrinho → geração de lotes com saldo.
+### **Compras e Itens**
+- `Tbl_Compras`: Registro da compra
+- `Tbl_ComprasItens`: Atualização de estoque e custos
 
-### Saída do Estoque (Pedidos)
-Consumo FIFO dos lotes, cálculo automático de lucro e atualização do saldo.
+### **Financeiro**
+- `Tbl_PagRec`: Lançamentos de pagar/receber
+- `Tbl_Contas`: Contas bancárias com saldo e baixas
 
-### Dashboard
-Exibe estatísticas, pedidos recentes e status de estoque.
+### **Entidades Principais**
+- `Tbl_Clientes`
+- `Tbl_Toner`
+- `Tbl_Fornecedores`
 
-### Instalar dependências
+---
+
+## 🔌 Fluxo Geral do Sistema
+
+### **1. Compra**
+1. Cadastra compra  
+2. Adiciona itens  
+3. Estoque aumenta  
+4. Gera contas a pagar  
+
+### **2. Venda**
+1. Escolhe cliente  
+2. Adiciona toner  
+3. Calcula lucro automático  
+4. Estoque diminui  
+5. Gera contas a receber  
+
+### **3. Financeiro**
+- Baixa atualiza títulos e conta bancária
+
+---
+
+## ▶️ Como Rodar o Projeto
+
 ```
 npm install
-```
-
-### Configurar arquivo .env
-```
-DB_USER=seu_usuario
-DB_PASS=sua_senha
-DB_SERVER=localhost
-DB_DATABASE=tonerstock
-```
-
-### Iniciar aplicação
-```
 npm start
 ```
 
-## 📌 Regras de Negócio
+Configurar `.env` ou arquivo de conexão em:  
+`src/db/config.js`
 
-- Lotes consumidos por FIFO  
-- Cálculo de lucro item a item  
-- Venda impedida sem saldo  
-- Controle de toner de locação  
+---
 
-## 🗺️ Roadmap
-
-- Autenticação  
-- Perfis de usuário  
-- Relatórios PDF  
-- Módulo de locação de impressoras  
-- Logs e auditorias  
-
-## 🤝 Contribuição
-
-Pull requests são bem-vindos.
-
-## 📄 Licença
-
-MIT License.
-
+## 📄 Autor
+Desenvolvido por Matheus Bonafin.
