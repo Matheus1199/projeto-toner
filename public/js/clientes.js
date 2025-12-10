@@ -6,6 +6,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const inputPesquisa = document.getElementById("pesquisaCliente");
     const resultadoDiv = document.getElementById("resultado");
     const tabelaCompras = document.getElementById("tabelaCompras");
+    const isLocacao = document.getElementById("clienteLocacao");
 
     let timeout = null;
 
@@ -150,6 +151,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const nome = document.getElementById("nome").value.trim();
         const ativo = document.getElementById("ativo").checked;
         const id_vendedor = document.getElementById("idVendedor").value;
+        const tipoCliente = isLocacao ? 4 : 2;
 
         if (!nome) {
             alert("Digite o nome do cliente.");
@@ -165,7 +167,8 @@ document.addEventListener("DOMContentLoaded", () => {
                 body: JSON.stringify({
                     nome,
                     ativo,
-                    id_vendedor
+                    id_vendedor,
+                    tipo: tipoCliente
                 })
             });
 
@@ -182,6 +185,7 @@ document.addEventListener("DOMContentLoaded", () => {
             document.getElementById("nome").value = "";
             document.getElementById("ativo").checked = false;
             document.getElementById("idVendedor").value = "1";
+            document.getElementById("clienteLocacao").checked = false;
 
             // Fecha modal
             fecharModal();

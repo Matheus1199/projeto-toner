@@ -3,16 +3,18 @@ module.exports = {
     const pool = req.app.get("db");
     const sql = req.app.get("sql");
 
-    const { nome, ativo, id_vendedor } = req.body;
+    const { nome, ativo, id_vendedor, tipo } = req.body;
 
     try {
       await pool
         .request()
         .input("nome", sql.VarChar(100), nome)
         .input("ativo", sql.Bit, ativo)
-        .input("id_vendedor", sql.Int, id_vendedor).query(`
-                    INSERT INTO Tbl_Clientes (Nome, Ativo, Id_vendedor)
-                    VALUES (@nome, @ativo, @id_vendedor)
+        .input("id_vendedor", sql.Int, id_vendedor)
+        .input("tipo", sql.Int, tipo)
+        .query(`
+                    INSERT INTO Tbl_Clientes (Nome, Ativo, Id_vendedor, Tipo)
+                    VALUES (@nome, @ativo, @id_vendedor, @tipo)
                 `);
 
       res.status(201).json({ message: "Cliente cadastrado com sucesso!" });
@@ -161,7 +163,7 @@ module.exports = {
     const sql = req.app.get("sql");
 
     const { Id_cliente } = req.params;
-    const { nome, ativo, id_vendedor } = req.body;
+    const { nome, ativo, id_vendedor, tipo } = req.body;
 
     try {
       const result = await pool
@@ -169,11 +171,14 @@ module.exports = {
         .input("Id_cliente", sql.Int, Id_cliente)
         .input("nome", sql.VarChar(100), nome)
         .input("ativo", sql.Bit, ativo)
-        .input("id_vendedor", sql.Int, id_vendedor).query(`
+        .input("id_vendedor", sql.Int, id_vendedor)
+        .input("tipo", sql.Int, tipo)
+        .query(`
                     UPDATE Tbl_Clientes
                     SET Nome = @nome,
                         Ativo = @ativo,
-                        Id_vendedor = @id_vendedor
+                        Id_vendedor = @id_vendedor,
+                        Tipo = @tipo
                     WHERE Id_cliente = @Id_cliente
                 `);
 
