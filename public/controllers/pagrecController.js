@@ -22,7 +22,7 @@ module.exports = {
 FROM Tbl_PagRec PR
 LEFT JOIN Tbl_Pedidos P
        ON P.Cod_Pedido = PR.Id_Operacao
-LEFT JOIN Tbl_Clientes C
+INNER JOIN Tbl_Clientes C
        ON C.Id_Cliente = P.Cod_Cliente
 WHERE PR.Tipo = 2 
   AND PR.Operacao = 2
