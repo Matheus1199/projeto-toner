@@ -4,6 +4,7 @@ const clienteController = require("../controllers/clienteController");
 
 router.post("/cadastrar", clienteController.cadastrar);
 router.get("/pesquisar", clienteController.pesquisar);
+router.get("/detalhes/:id", clienteController.detalhes);
 router.get("/listarTodos", clienteController.listarTodos);
 router.get("/buscarPorId/:Id_cliente", clienteController.buscarPorId);
 router.put("/editar/:Id_cliente", clienteController.editar);

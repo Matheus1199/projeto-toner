@@ -11,8 +11,7 @@ module.exports = {
         .input("nome", sql.VarChar(100), nome)
         .input("ativo", sql.Bit, ativo)
         .input("id_vendedor", sql.Int, id_vendedor)
-        .input("tipo", sql.Int, tipo)
-        .query(`
+        .input("tipo", sql.Int, tipo).query(`
                     INSERT INTO Tbl_Clientes (Nome, Ativo, Id_vendedor, Tipo)
                     VALUES (@nome, @ativo, @id_vendedor, @tipo)
                 `);
@@ -31,90 +30,24 @@ module.exports = {
     const { nome } = req.query;
 
     try {
-      // Buscar cliente
-      const clienteResult = await pool
+      const result = await pool
         .request()
         .input("nome", sql.VarChar, `%${nome}%`).query(`
-                SELECT TOP 1 
-                    Id_cliente,
-                    Nome,
-                    Ativo,
-                    Id_vendedor
+                SELECT TOP 20 
+                    Id_Cliente,
+                    Nome
                 FROM Tbl_Clientes
-                WHERE Nome LIKE @nome
+                WHERE Nome LIKE @nome AND Ativo = 1
+                ORDER BY Nome ASC
             `);
 
-      if (clienteResult.recordset.length === 0)
+      if (result.recordset.length === 0)
         return res.status(404).json({ error: "Cliente não encontrado" });
 
-      const cliente = clienteResult.recordset[0];
-
-      // Buscar as últimas 5 compras
-      const vendasResult = await pool
-        .request()
-        .input("id", sql.Int, cliente.Id_cliente).query(`
-                SELECT TOP 5
-                    P.Cod_Pedido,
-                    P.Data,
-                    P.Valor_Total,
-                    P.NDoc,
-                    (
-                        SELECT SUM(Quantidade) 
-                        FROM Tbl_PedidosItens I 
-                        WHERE I.Cod_Pedido = P.Cod_Pedido
-                    ) AS QuantidadeTotal
-                FROM Tbl_Pedidos P
-                WHERE P.Cod_Cliente = @id
-                ORDER BY P.Data DESC
-            `);
-
-      const compras = [];
-
-      // Para cada pedido, buscar os itens vendidos
-      for (const compra of vendasResult.recordset) {
-        const itensResult = await pool
-          .request()
-          .input("Cod_Pedido", sql.Int, compra.Cod_Pedido).query(`
-        SELECT 
-            I.Quantidade,
-            I.Valor_Venda,
-            T.Modelo,
-            T.Marca,
-            T.Tipo
-        FROM Tbl_PedidosItens I
-        INNER JOIN Tbl_Toner T ON T.Cod_Produto = I.Cod_Toner
-        WHERE I.Cod_Pedido = @Cod_Pedido
-    `);
-
-        compras.push({
-          ...compra,
-          itens: itensResult.recordset,
-        });
-      }
-
-      // Histórico completo de toners já vendidos para este cliente
-      const historicoResult = await pool
-        .request()
-        .input("id", sql.Int, cliente.Id_cliente).query(`
-        SELECT 
-            T.Modelo,
-            SUM(I.Quantidade) AS QuantidadeTotal
-        FROM Tbl_PedidosItens I
-        INNER JOIN Tbl_Pedidos P ON P.Cod_Pedido = I.Cod_Pedido
-        INNER JOIN Tbl_Toner T ON T.Cod_Produto = I.Cod_Toner
-        WHERE P.Cod_Cliente = @id
-        GROUP BY T.Modelo
-        ORDER BY QuantidadeTotal DESC
-    `);
-
-      res.json({
-        cliente,
-        compras,
-        historico: historicoResult.recordset,
-      });
+      return res.json(result.recordset);
     } catch (error) {
       console.error("Erro ao pesquisar cliente:", error);
-      res.status(500).json({ error: "Erro ao pesquisar cliente" });
+      return res.status(500).json({ error: "Erro ao pesquisar cliente" });
     }
   },
 
@@ -131,6 +64,95 @@ module.exports = {
     } catch (error) {
       console.error("Erro ao listar clientes:", error);
       res.status(500).json({ error: "Erro ao listar clientes" });
+    }
+  },
+
+  detalhes: async (req, res) => {
+    const pool = req.app.get("db");
+    const sql = req.app.get("sql");
+
+    const { id } = req.params;
+
+    try {
+      const clienteResult = await pool.request().input("id", sql.Int, id)
+        .query(`
+                SELECT 
+                    Id_Cliente,
+                    Nome,
+                    Ativo,
+                    Id_Vendedor,
+                    Tipo
+                FROM Tbl_Clientes
+                WHERE Id_Cliente = @id
+            `);
+
+      if (clienteResult.recordset.length === 0)
+        return res.status(404).json({ error: "Cliente não encontrado" });
+
+      const cliente = clienteResult.recordset[0];
+
+      const vendasResult = await pool.request().input("id", sql.Int, id).query(`
+                SELECT TOP 5
+                    P.Cod_Pedido,
+                    P.Data,
+                    P.Valor_Total,
+                    P.NDoc,
+                    (
+                        SELECT SUM(Quantidade)
+                        FROM Tbl_PedidosItens I
+                        WHERE I.Cod_Pedido = P.Cod_Pedido
+                    ) AS QuantidadeTotal
+                FROM Tbl_Pedidos P
+                WHERE P.Cod_Cliente = @id
+                ORDER BY P.Data DESC
+            `);
+
+      const compras = [];
+
+      for (const compra of vendasResult.recordset) {
+        const itensResult = await pool
+          .request()
+          .input("Cod_Pedido", sql.Int, compra.Cod_Pedido).query(`
+                    SELECT 
+                        I.Quantidade,
+                        I.Valor_Venda,
+                        T.Modelo,
+                        T.Marca,
+                        T.Tipo
+                    FROM Tbl_PedidosItens I
+                    INNER JOIN Tbl_Toner T ON T.Cod_Produto = I.Cod_Toner
+                    WHERE I.Cod_Pedido = @Cod_Pedido
+                `);
+
+        compras.push({
+          ...compra,
+          itens: itensResult.recordset,
+        });
+      }
+
+      const historicoResult = await pool.request().input("id", sql.Int, id)
+        .query(`
+                SELECT 
+                    T.Modelo,
+                    SUM(I.Quantidade) AS QuantidadeTotal
+                FROM Tbl_PedidosItens I
+                INNER JOIN Tbl_Pedidos P ON P.Cod_Pedido = I.Cod_Pedido
+                INNER JOIN Tbl_Toner T ON T.Cod_Produto = I.Cod_Toner
+                WHERE P.Cod_Cliente = @id
+                GROUP BY T.Modelo
+                ORDER BY QuantidadeTotal DESC
+            `);
+
+      return res.json({
+        cliente,
+        compras,
+        historico: historicoResult.recordset,
+      });
+    } catch (error) {
+      console.error("Erro ao buscar detalhes:", error);
+      return res
+        .status(500)
+        .json({ error: "Erro ao buscar detalhes do cliente" });
     }
   },
 
@@ -172,8 +194,7 @@ module.exports = {
         .input("nome", sql.VarChar(100), nome)
         .input("ativo", sql.Bit, ativo)
         .input("id_vendedor", sql.Int, id_vendedor)
-        .input("tipo", sql.Int, tipo)
-        .query(`
+        .input("tipo", sql.Int, tipo).query(`
                     UPDATE Tbl_Clientes
                     SET Nome = @nome,
                         Ativo = @ativo,

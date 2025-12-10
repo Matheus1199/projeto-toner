@@ -1,199 +1,234 @@
 // ==============================
-// clientes.js - TonerStock
+// clientes.js - TonerStock (AJUSTADO PARA NOVO BACKEND)
 // ==============================
 document.addEventListener("DOMContentLoaded", () => {
+  const inputPesquisa = document.getElementById("pesquisaCliente");
+  const resultadoDiv = document.getElementById("resultado");
+  const tabelaCompras = document.getElementById("tabelaCompras");
+  const isLocacao = document.getElementById("clienteLocacao");
+  const caixaSugestoes = document.getElementById("autocompleteClientes");
 
-    const inputPesquisa = document.getElementById("pesquisaCliente");
-    const resultadoDiv = document.getElementById("resultado");
-    const tabelaCompras = document.getElementById("tabelaCompras");
-    const isLocacao = document.getElementById("clienteLocacao");
+  let timeout = null;
 
-    let timeout = null;
+  // ============================
+  // 🟦 Autocomplete
+  // ============================
+  inputPesquisa.addEventListener("input", () => {
+    const texto = inputPesquisa.value.trim();
 
-    // ============================
-    // 🟦 Evento de pesquisa
-    // ============================
-    inputPesquisa.addEventListener("input", () => {
-        clearTimeout(timeout);
-        timeout = setTimeout(() => buscarCliente(inputPesquisa.value), 400);
-    });
-
-    // ============================
-    // 🔍 Buscar Cliente
-    // ============================
-    async function buscarCliente(nome) {
-
-        if (!nome.trim()) {
-            resultadoDiv.classList.add("hidden");
-            tabelaCompras.innerHTML = "";
-            return;
-        }
-
-        try {
-            const res = await fetch(`/clientes/pesquisar?nome=${encodeURIComponent(nome)}`);
-            const data = await res.json();
-
-            if (data.error) {
-                resultadoDiv.classList.remove("hidden");
-                resultadoDiv.innerHTML = `<p class="text-red-600">${data.error}</p>`;
-                return;
-            }
-
-            const cliente = data.cliente;
-            const compras = data.compras;
-
-            resultadoDiv.classList.remove("hidden");
-
-            // Preenche informações do cliente
-            document.getElementById("nomeCliente").textContent = cliente.Nome;
-            document.getElementById("statusCliente").textContent = cliente.Ativo ? "Ativo" : "Inativo";
-
-            // Canal de aquisição
-            const canais = {
-                1: "Barsotti",
-                6: "Whatsapp",
-                7: "Google"
-            };
-
-            document.getElementById("vendedorCliente").textContent =
-                canais[cliente.Id_vendedor] || "Desconhecido";
-
-            // Limpa tabela antes de preencher
-            tabelaCompras.innerHTML = "";
-
-            // Preencher as últimas 5 compras
-            for (const compra of compras) {
-              const listaToners =
-                compra.itens && compra.itens.length > 0
-                  ? compra.itens
-                      .map(
-                        (i) =>
-                          `${i.Modelo} (${i.Quantidade} un • R$ ${Number(
-                            i.Valor_Venda
-                          ).toFixed(2)})`
-                      )
-                      .join("<br>")
-                  : "-";
-
-              const tr = document.createElement("tr");
-              tr.innerHTML = `
-        <td class="py-3 border-b font-medium text-center">${new Date(
-          compra.Data
-        ).toLocaleDateString()}</td>
-        <td class="py-3 border-b font-medium text-center">#${
-          compra.Cod_Pedido
-        }</td>
-        <td class="py-3 border-b font-medium text-center">${
-          compra.QuantidadeTotal
-        }</td>
-        <td class="py-3 border-b font-medium text-green-700 text-center">R$ ${compra.Valor_Total.toFixed(
-          2
-        )}</td>
-        <td class="py-3 border-b text-center text-gray-700">${listaToners}</td>
-    `;
-              tabelaCompras.appendChild(tr);
-
-              // ==========================
-              // Exibir histórico em blocos
-              // ==========================
-              const blocos = document.getElementById("blocosHistorico");
-              blocos.innerHTML = "";
-
-              data.historico.forEach((item) => {
-                const div = document.createElement("div");
-                div.className =
-                  "p-4 rounded-lg shadow-md bg-gray-100 text-center border hover:bg-gray-200 transition";
-
-                div.innerHTML = `
-        <p class="font-bold text-gray-800 text-sm leading-tight">${item.Modelo}</p>
-        <p class="text-xl font-semibold text-blue-700 mt-1">${item.QuantidadeTotal}</p>
-    `;
-
-                blocos.appendChild(div);
-              });
-            }
-
-        } catch (err) {
-            console.error("Erro ao buscar cliente:", err);
-        }
+    if (texto.length === 0) {
+      caixaSugestoes.innerHTML = "";
+      caixaSugestoes.classList.add("hidden");
+      return;
     }
 
+    clearTimeout(timeout);
+    timeout = setTimeout(() => {
+      buscarSugestoes(texto);
+    }, 200);
+  });
 
-    // ===============================
-    // 🎯 Abrir e Fechar Modal Cliente
-    // ===============================
-    const btnNovoCliente = document.getElementById("btnNovoCliente");
-    const modal = document.getElementById("modal-bg");
+  async function buscarSugestoes(texto) {
+    try {
+      const r = await fetch(
+        `/clientes/pesquisar?nome=${encodeURIComponent(texto)}`
+      );
+      if (!r.ok) return;
 
-    // Abrir modal
-    btnNovoCliente.addEventListener("click", () => {
-        modal.classList.remove("hidden");
-    });
+      const lista = await r.json();
 
-    // Fechar modal (função usada no HTML)
-    window.fecharModal = () => {
-        modal.classList.add("hidden");
-    };
+      if (!Array.isArray(lista) || lista.length === 0) {
+        caixaSugestoes.innerHTML =
+          "<div class='p-2 text-gray-500'>Nenhum cliente encontrado</div>";
+        caixaSugestoes.classList.remove("hidden");
+        return;
+      }
 
-    // Fechar clicando fora
-    modal.addEventListener("click", (e) => {
-        if (e.target === modal) {
-            modal.classList.add("hidden");
-        }
-    });
+      caixaSugestoes.innerHTML = lista
+        .map(
+          (c) => `
+                <div class="p-2 hover:bg-gray-100 cursor-pointer" data-id="${c.Id_Cliente}">
+                    ${c.Nome}
+                </div>
+            `
+        )
+        .join("");
 
-    // ===============================
-    // 💾 Salvar Novo Cliente
-    // ===============================
-    const btnSalvar = document.getElementById("salvarCliente");
+      caixaSugestoes.classList.remove("hidden");
 
-    btnSalvar.addEventListener("click", async () => {
-        const nome = document.getElementById("nome").value.trim();
-        const ativo = document.getElementById("ativo").checked;
-        const id_vendedor = document.getElementById("idVendedor").value;
-        const tipoCliente = isLocacao ? 4 : 2;
+      caixaSugestoes.querySelectorAll("div[data-id]").forEach((item) => {
+        item.addEventListener("click", () => {
+          selecionarCliente(item.dataset.id, item.textContent);
+        });
+      });
+    } catch (erro) {
+      console.error("Erro ao buscar sugestões", erro);
+    }
+  }
 
-        if (!nome) {
-            alert("Digite o nome do cliente.");
-            return;
-        }
+  // ============================
+  // 🟦 Quando clica no cliente do autocomplete
+  // ============================
+  function selecionarCliente(id, nome) {
+    inputPesquisa.value = nome;
+    caixaSugestoes.classList.add("hidden");
+    caixaSugestoes.innerHTML = "";
 
-        try {
-            const res = await fetch("/clientes/cadastrar", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify({
-                    nome,
-                    ativo,
-                    id_vendedor,
-                    tipo: tipoCliente
-                })
-            });
+    carregarDetalhesCliente(id);
+  }
 
-            const data = await res.json();
+  // ============================
+  // 🔍 Buscar DETALHES do cliente pelo ID
+  // ============================
+  async function carregarDetalhesCliente(id) {
+    try {
+      const r = await fetch(`/clientes/detalhes/${id}`);
+      const data = await r.json();
 
-            if (!res.ok) {
-                alert("Erro ao salvar: " + (data.error || "Erro desconhecido"));
-                return;
-            }
+      if (!r.ok) {
+        resultadoDiv.classList.remove("hidden");
+        resultadoDiv.innerHTML = `<p class="text-red-600">${data.error}</p>`;
+        return;
+      }
 
-            alert("Cliente cadastrado com sucesso!");
+      const cliente = data.cliente;
+      const compras = data.compras;
+      const historico = data.historico;
 
-            // Limpa campos
-            document.getElementById("nome").value = "";
-            document.getElementById("ativo").checked = false;
-            document.getElementById("idVendedor").value = "1";
-            document.getElementById("clienteLocacao").checked = false;
+      resultadoDiv.classList.remove("hidden");
 
-            // Fecha modal
-            fecharModal();
+      document.getElementById("nomeCliente").textContent = cliente.Nome;
+      document.getElementById("statusCliente").textContent = cliente.Ativo
+        ? "Ativo"
+        : "Inativo";
 
-        } catch (error) {
-            console.error("Erro ao salvar cliente:", error);
-            alert("Erro ao salvar cliente no servidor.");
-        }
-    });
+      const canais = {
+        1: "Barsotti",
+        6: "Whatsapp",
+        7: "Google",
+      };
 
+      document.getElementById("vendedorCliente").textContent =
+        canais[cliente.Id_Vendedor] || "Desconhecido";
+
+      // Limpa tabela
+      tabelaCompras.innerHTML = "";
+
+      // Últimas compras
+      for (const compra of compras) {
+        const listaToners =
+          compra.itens && compra.itens.length > 0
+            ? compra.itens
+                .map(
+                  (i) =>
+                    `${i.Modelo} (${i.Quantidade} un • R$ ${Number(
+                      i.Valor_Venda
+                    ).toFixed(2)})`
+                )
+                .join("<br>")
+            : "-";
+
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+            <td class="py-3 border-b font-medium text-center">${new Date(
+              compra.Data
+            ).toLocaleDateString()}</td>
+            <td class="py-3 border-b font-medium text-center">#${
+              compra.Cod_Pedido
+            }</td>
+            <td class="py-3 border-b font-medium text-center">${
+              compra.QuantidadeTotal
+            }</td>
+            <td class="py-3 border-b font-medium text-green-700 text-center">R$ ${compra.Valor_Total.toFixed(
+              2
+            )}</td>
+            <td class="py-3 border-b text-center text-gray-700">${listaToners}</td>
+        `;
+        tabelaCompras.appendChild(tr);
+      }
+
+      // Histórico
+      const blocos = document.getElementById("blocosHistorico");
+      blocos.innerHTML = "";
+
+      historico.forEach((item) => {
+        const div = document.createElement("div");
+        div.className =
+          "p-4 rounded-lg shadow-md bg-gray-100 text-center border hover:bg-gray-200 transition";
+
+        div.innerHTML = `
+            <p class="font-bold text-gray-800 text-sm leading-tight">${item.Modelo}</p>
+            <p class="text-xl font-semibold text-blue-700 mt-1">${item.QuantidadeTotal}</p>
+        `;
+
+        blocos.appendChild(div);
+      });
+    } catch (err) {
+      console.error("Erro ao carregar detalhes do cliente:", err);
+    }
+  }
+
+  // ===============================
+  // 🎯 Modal
+  // ===============================
+  const btnNovoCliente = document.getElementById("btnNovoCliente");
+  const modal = document.getElementById("modal-bg");
+
+  btnNovoCliente.addEventListener("click", () =>
+    modal.classList.remove("hidden")
+  );
+  window.fecharModal = () => modal.classList.add("hidden");
+
+  modal.addEventListener("click", (e) => {
+    if (e.target === modal) modal.classList.add("hidden");
+  });
+
+  // ===============================
+  // 💾 Salvar Novo Cliente
+  // ===============================
+  const btnSalvar = document.getElementById("salvarCliente");
+
+  btnSalvar.addEventListener("click", async () => {
+    const nome = document.getElementById("nome").value.trim();
+    const ativo = document.getElementById("ativo").checked;
+    const id_vendedor = document.getElementById("idVendedor").value;
+    const tipoCliente = isLocacao.checked ? 4 : 2;
+
+    if (!nome) {
+      alert("Digite o nome do cliente.");
+      return;
+    }
+
+    try {
+      const res = await fetch("/clientes/cadastrar", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          nome,
+          ativo,
+          id_vendedor,
+          tipo: tipoCliente,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        alert("Erro ao salvar: " + (data.error || "Erro desconhecido"));
+        return;
+      }
+
+      alert("Cliente cadastrado com sucesso!");
+
+      // limpar form
+      document.getElementById("nome").value = "";
+      document.getElementById("ativo").checked = false;
+      document.getElementById("idVendedor").value = "1";
+      isLocacao.checked = false;
+
+      fecharModal();
+    } catch (error) {
+      console.error("Erro ao salvar cliente:", error);
+    }
+  });
 });
