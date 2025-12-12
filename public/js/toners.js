@@ -63,29 +63,30 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // ========== BUSCAR TONER ==========
     async function buscarToner(tipo, termo) {
-
-        if (!termo.trim()) {
-            resultado.classList.add("hidden");
-            resultado.innerHTML = "";
-            return;
-        }
-
-        const res = await fetch(`/toners/pesquisar?tipo=${tipo}&termo=${encodeURIComponent(termo)}`);
-        const data = await res.json();
-
-        resultado.classList.remove("hidden");
+      if (!termo.trim()) {
+        resultado.classList.add("hidden");
         resultado.innerHTML = "";
+        return;
+      }
 
-        if (data.error) {
-            resultado.innerHTML = `<p class="text-red-600">${data.error}</p>`;
-            return;
-        }
+      const res = await fetch(
+        `/toners/pesquisar?tipo=${tipo}&termo=${encodeURIComponent(termo)}`
+      );
+      const data = await res.json();
 
-        // =====================================================
-        // 🔍 PESQUISA POR MODELO - MOSTRA DETALHES DO TONER
-        // =====================================================
-        if (data.tipo === "modelo") {
-            resultado.innerHTML = `
+      resultado.classList.remove("hidden");
+      resultado.innerHTML = "";
+
+      if (data.error) {
+        resultado.innerHTML = `<p class="text-red-600">${data.error}</p>`;
+        return;
+      }
+
+      // =====================================================
+      // 🔍 PESQUISA POR MODELO - MOSTRA DETALHES DO TONER
+      // =====================================================
+      if (data.tipo === "modelo") {
+        resultado.innerHTML = `
                 <div class="p-6 bg-white rounded-2xl shadow border">
                     <h2 class="text-xl font-bold">${data.toner.modelo}</h2>
                     <p><strong>Marca:</strong> ${data.toner.marca}</p>
@@ -110,55 +111,73 @@ document.addEventListener("DOMContentLoaded", () => {
                         </thead>
                         <tbody>
                             ${
-                            data.vendas.length > 0
-                                ? data.vendas.map(v => `
+                              data.vendas.length > 0
+                                ? data.vendas
+                                    .map(
+                                      (v) => `
                                         <tr>
-                                            <td class="p-2 text-center">${new Date(v.Data_Venda).toLocaleDateString()}</td>
-                                            <td class="p-2 text-center">${v.Cliente}</td>
-                                            <td class="p-2 text-center">${v.Quantidade}</td>
-                                            <td class="p-2 text-center">R$ ${parseFloat(v.Valor_Venda).toFixed(2)}</td>
+                                            <td class="p-2 text-center">${new Date(
+                                              v.Data_Venda
+                                            ).toLocaleDateString()}</td>
+                                            <td class="p-2 text-center">${
+                                              v.Cliente
+                                            }</td>
+                                            <td class="p-2 text-center">${
+                                              v.Quantidade
+                                            }</td>
+                                            <td class="p-2 text-center">R$ ${parseFloat(
+                                              v.Valor_Venda
+                                            ).toFixed(2)}</td>
                                         </tr>
-                                    `).join("")
+                                    `
+                                    )
+                                    .join("")
                                 : `<tr><td colspan="4" class="p-2 text-gray-500">Nenhuma venda encontrada.</td></tr>`
-                        }
+                            }
                         </tbody>
                     </table>
                 </div>
             `;
-            return;
-        }
+        return;
+      }
 
-        // =====================================================
-        // 🔍 PESQUISA POR MARCA / TIPO — MOSTRA LISTA
-        // =====================================================
-        if (data.tipo === "marca" || data.tipo === "tipo") {
-            resultado.innerHTML = `
-                <div class="p-6 bg-white rounded-2xl shadow border">
-                    <h2 class="text-xl font-bold mb-3">Resultados</h2>
-                    <table class="w-full border">
-                        <thead>
-                        <tr class="bg-gray-100">
-                            <th class="p-2">Modelo</th>
-                            <th class="p-2">Marca</th>
-                            <th class="p-2">Tipo</th>
-                            <th class="p-2">Estoque</th>
+      // =====================================================
+      // 🔍 PESQUISA POR MARCA / TIPO — MOSTRA LISTA
+      // =====================================================
+      if (data.tipo === "marca" || data.tipo === "tipo") {
+        resultado.innerHTML = `
+        <div class="p-4 md:p-6 bg-white rounded-2xl shadow border">
+            <h2 class="text-xl font-bold mb-4">Resultados</h2>
+
+            <!-- wrapper para scroll no mobile -->
+            <div class="overflow-x-auto">
+                <table class="min-w-full border text-sm">
+                    <thead>
+                        <tr class="bg-gray-100 text-left">
+                            <th class="p-3 whitespace-nowrap">Modelo</th>
+                            <th class="p-3 whitespace-nowrap">Marca</th>
+                            <th class="p-3 whitespace-nowrap">Tipo</th>
+                            <th class="p-3 whitespace-nowrap text-center">Estoque</th>
                         </tr>
-                        </thead>
-                        <tbody>
-                        ${
-                data.toners.map(t => `
-                            <tr>
-                                <td class="p-2">${t.Modelo}</td>
-                                <td class="p-2">${t.Marca}</td>
-                                <td class="p-2">${t.Tipo}</td>
-                                <td class="p-2">${t.Estoque}</td>
-                            </tr>
-                        `).join("")
-            }
-                        </tbody>
-                    </table>
-                </div>
-            `;
-        }
+                    </thead>
+                    <tbody>
+                        ${data.toners
+                          .map(
+                            (t) => `
+                                <tr class="border-t hover:bg-gray-50">
+                                    <td class="p-3 whitespace-nowrap">${t.Modelo}</td>
+                                    <td class="p-3 whitespace-nowrap">${t.Marca}</td>
+                                    <td class="p-3 whitespace-nowrap">${t.Tipo}</td>
+                                    <td class="p-3 text-center font-medium">${t.Estoque}</td>
+                                </tr>
+                            `
+                          )
+                          .join("")}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    `;
+      }
     }
 });
