@@ -125,6 +125,8 @@ app.use("/vendas", require("./public/routes/vendas.routes"));
 app.use("/estoque", require("./public/routes/estoque.routes"));
 app.use("/pagrec", require("./public/routes/pagrec.routes"));
 app.use("/contas", require("./public/routes/contas.routes"));
+app.use("/contagem", require("./public/routes/contagem.routes"));
+
 
 // =====================
 // SERVIDOR

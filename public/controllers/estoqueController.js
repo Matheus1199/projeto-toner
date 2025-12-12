@@ -92,4 +92,31 @@ module.exports = {
       return res.status(500).json({ error: "Erro ao buscar estoque." });
     }
   },
+
+  listarSaldo: async (req, res) => {
+    const pool = req.app.get("db");
+
+    try {
+      const result = await pool.request().query(`
+                SELECT 
+    t.Cod_Produto,
+    t.Marca,
+    t.Modelo,
+    COALESCE(SUM(ci.Saldo), 0) AS SaldoSistema
+FROM Tbl_Toner t
+LEFT JOIN Tbl_ComprasItens ci ON ci.Cod_Toner = t.Cod_Produto
+GROUP BY t.Cod_Produto, t.Marca, t.Modelo
+HAVING COALESCE(SUM(ci.Saldo), 0) > 0
+ORDER BY t.Marca, t.Modelo;
+            `);
+
+      return res.json(result.recordset);
+    } catch (e) {
+      console.error("ERRO AO LISTAR SALDO DOS TONERS:", e);
+      return res.status(500).json({
+        erro: true,
+        mensagem: "Erro ao carregar saldo dos toners.",
+      });
+    }
+  },
 };
