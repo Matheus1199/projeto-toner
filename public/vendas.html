@@ -11,160 +11,153 @@
     <!-- Boxicons -->
     <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
 
+    <!-- TOGGLE (original mantido) -->
     <style>
-    .toggle {
-    --tw-shadow: 0 0 #0000;
-    }
-    .toggle input {
-    height: 0;
-    width: 0;
-    opacity: 0;
-    }
-    .toggle .slider {
-    cursor: pointer;
-    width: 52px;
-    height: 28px;
-    background-color: #d1d5db;
-    border-radius: 999px;
-    position: relative;
-    transition: background-color .2s;
-    }
-    .toggle .slider:before {
-    content: "";
-    position: absolute;
-    height: 22px;
-    width: 22px;
-    left: 3px;
-    top: 3px;
-    background-color: white;
-    border-radius: 50%;
-    transition: transform .2s;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.3);
-    }
-    .toggle input:checked + .slider {
-    background-color: #2563eb;
-    }
-    .toggle input:checked + .slider:before {
-    transform: translateX(24px);
-    }
-</style>
+        .toggle { --tw-shadow: 0 0 #0000; }
+        .toggle input { height: 0; width: 0; opacity: 0; }
+        .toggle .slider {
+            cursor: pointer;
+            width: 52px;
+            height: 28px;
+            background-color: #d1d5db;
+            border-radius: 999px;
+            position: relative;
+            transition: background-color .2s;
+        }
+        .toggle .slider:before {
+            content: "";
+            position: absolute;
+            height: 22px;
+            width: 22px;
+            left: 3px;
+            top: 3px;
+            background-color: white;
+            border-radius: 50%;
+            transition: transform .2s;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+        }
+        .toggle input:checked + .slider { background-color: #2563eb; }
+        .toggle input:checked + .slider:before { transform: translateX(24px); }
+    </style>
 </head>
 
-<body class="bg-gray-50 flex min-h-screen">
+<body class="bg-gray-50 min-h-screen flex">
+
+<!-- BOTÃO MENU MOBILE -->
+<button id="btnMenu"
+        class="md:hidden fixed top-4 left-4 z-50 bg-blue-600 text-white p-2 rounded-lg shadow">
+    <i class='bx bx-menu text-2xl'></i>
+</button>
 
 <!-- SIDEBAR -->
-<aside class="w-64 bg-white shadow-md flex flex-col fixed h-full">
+<aside id="sidebar"
+       class="w-64 bg-white shadow-md flex flex-col fixed h-full z-40
+              -translate-x-full md:translate-x-0 transition-transform duration-300">
+
     <div class="flex items-center gap-2 px-6 py-4 border-b">
         <h1 class="text-xl font-bold text-gray-700">Sistema de Toner</h1>
     </div>
 
-    <nav class="flex-1 mt-4">
+    <nav class="flex-1 mt-4 overflow-y-auto">
         <ul class="space-y-1">
             <li><a href="dashboard.html" class="flex items-center px-6 py-3 text-gray-600 hover:bg-gray-100">
                 <i class='bx bxs-dashboard text-xl mr-3'></i> Dashboard</a></li>
-
             <li><a href="toners.html" class="flex items-center px-6 py-3 text-gray-600 hover:bg-gray-100">
                 <i class='bx bxs-printer text-xl mr-3'></i> Toners</a></li>
-
             <li><a href="clientes.html" class="flex items-center px-6 py-3 text-gray-600 hover:bg-gray-100">
                 <i class='bx bxs-user text-xl mr-3'></i> Clientes</a></li>
-
             <li><a href="fornecedores.html" class="flex items-center px-6 py-3 text-gray-600 hover:bg-gray-100">
                 <i class='bx bxs-truck text-xl mr-3'></i> Fornecedores</a></li>
-
             <li><a href="vendas.html"
                    class="flex items-center px-6 py-3 text-blue-600 bg-blue-50 border-r-4 border-blue-600 font-medium">
                 <i class='bx bxs-cart text-xl mr-3'></i> Vendas</a></li>
-
             <li><a href="compras.html" class="flex items-center px-6 py-3 text-gray-600 hover:bg-gray-100">
                 <i class='bx bxs-basket text-xl mr-3'></i> Compras</a></li>
-
             <li><a href="pagrec.html" class="flex items-center px-6 py-3 text-gray-600 hover:bg-gray-100">
                 <i class='bx bxs-wallet text-xl mr-3'></i> Pagamentos / Recebimentos</a></li>
-            
-            <li><a href="contas.html" class="flex items-center px-6 py-3 text-gray-600 hover:bg-gray-100"><i class='bx bxs-bank text-xl mr-3'>
-                </i> Contas</a></li>
-            
-            <li><a href="contagem.html" class="flex items-center px-6 py-3 text-gray-600 hover:bg-gray-100"><i class='bx bxs-box text-xl mr-3'></i> Contagem Estoque</a></li>
+            <li><a href="contas.html" class="flex items-center px-6 py-3 text-gray-600 hover:bg-gray-100">
+                <i class='bx bxs-bank text-xl mr-3'></i> Contas</a></li>
+            <li><a href="contagem.html" class="flex items-center px-6 py-3 text-gray-600 hover:bg-gray-100">
+                <i class='bx bxs-box text-xl mr-3'></i> Contagem Estoque</a></li>
         </ul>
     </nav>
 </aside>
 
-<!-- MAIN CONTENT -->
-<main class="ml-64 p-6 w-full">
+<!-- CONTEÚDO PRINCIPAL -->
+<main class="flex-1 w-full p-4 md:p-6 md:ml-64 mt-16 md:mt-0">
 
-    <!-- TOPO: TÍTULO + PESQUISA + BOTÃO NOVO -->
-    <div class="flex justify-between items-center mb-6">
-        <h1 class="text-3xl font-bold text-gray-700">Vendas</h1>
+    <!-- TOPO -->
+    <div class="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-4 mb-6">
+        <h1 class="text-2xl md:text-3xl font-bold text-gray-700">Vendas</h1>
 
-        <div class="flex items-center gap-3">
-
-            <!-- CAMPO DE PESQUISA -->
+        <div class="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
             <input id="pesquisaPedido"
                    type="text"
-                   class="p-2 border rounded-xl w-64"
+                   class="p-3 border rounded-xl w-full sm:w-64"
                    placeholder="Pesquisar pedido (código)...">
 
             <button id="btnPesquisarPedido"
-                    class="flex items-center gap-2 bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-xl shadow-sm">
+                    class="flex items-center justify-center gap-2 bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-xl shadow-sm">
                 <i class='bx bx-search text-xl'></i> Pesquisar
             </button>
 
-            <!-- BOTÃO DE NOVA VENDA -->
             <button id="btnNovaVenda"
-                    class="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-xl shadow-sm">
+                    class="flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-xl shadow-sm">
                 <i class='bx bx-plus text-xl'></i> Nova Venda
             </button>
-
         </div>
     </div>
 
-    <!-- LISTA DE VENDAS -->
-    <div class="bg-white p-6 rounded-2xl shadow-sm border">
+    <!-- ÚLTIMAS VENDAS -->
+    <div class="bg-white p-4 md:p-6 rounded-2xl shadow-sm border">
         <h2 class="text-xl font-semibold text-gray-700 mb-3">Últimas 10 Vendas</h2>
 
-        <table class="w-full border-collapse">
-            <thead>
-            <tr class="border-b bg-gray-100 text-left">
-                <th class="py-2 px-3 text-gray-600">Código</th>
-                <th class="py-2 px-3 text-gray-600">Data</th>
-                <th class="py-2 px-3 text-gray-600">Cliente</th>
-                <th class="py-2 px-3 text-gray-600">Valor Total</th>
-                <th class="py-2 px-3 text-gray-600">Nº Documento</th>
-            </tr>
-            </thead>
-            <tbody id="tabelaVendas" class="text-gray-700"></tbody>
-        </table>
+        <div class="overflow-x-auto">
+            <table class="w-full border-collapse text-sm">
+                <thead>
+                <tr class="border-b bg-gray-100">
+                    <th class="py-2 px-3">Código</th>
+                    <th class="py-2 px-3">Data</th>
+                    <th class="py-2 px-3">Cliente</th>
+                    <th class="py-2 px-3">Valor Total</th>
+                    <th class="py-2 px-3">Nº Documento</th>
+                </tr>
+                </thead>
+                <tbody id="tabelaVendas"></tbody>
+            </table>
+        </div>
     </div>
 
+    <!-- RESULTADO PESQUISA -->
+    <div id="resultadoPesquisa"
+         class="bg-white p-4 md:p-6 rounded-2xl shadow-sm border mt-6 hidden">
 
-    <!-- RESULTADO DA PESQUISA -->
-    <div id="resultadoPesquisa" class="bg-white p-6 rounded-2xl shadow-sm border mt-6 hidden">
         <h2 class="text-xl font-semibold text-gray-700 mb-3">Resultado da Pesquisa</h2>
 
-        <table class="w-full border-collapse">
-            <thead>
-            <tr class="border-b bg-gray-100 text-left">
-                <th class="py-2 px-3">Código</th>
-                <th class="py-2 px-3">Data</th>
-                <th class="py-2 px-3">Cliente</th>
-                <th class="py-2 px-3">Toner</th>
-                <th class="py-2 px-3">Qtd.</th>
-                <th class="py-2 px-3">Valor Total</th>
-            </tr>
-            </thead>
-
-            <tbody id="tabelaPesquisa"></tbody>
-        </table>
+        <div class="overflow-x-auto">
+            <table class="w-full border-collapse text-sm">
+                <thead>
+                <tr class="border-b bg-gray-100">
+                    <th class="py-2 px-3">Código</th>
+                    <th class="py-2 px-3">Data</th>
+                    <th class="py-2 px-3">Cliente</th>
+                    <th class="py-2 px-3">Toner</th>
+                    <th class="py-2 px-3">Qtd.</th>
+                    <th class="py-2 px-3">Valor Total</th>
+                </tr>
+                </thead>
+                <tbody id="tabelaPesquisa"></tbody>
+            </table>
+        </div>
     </div>
 
 </main>
 
 <!-- MODAL VENDAS COMPLETO -->
 <div id="modal-bg"
-     class="hidden fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+     class="hidden fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 px-4">
 
-    <div class="bg-white w-[900px] p-6 rounded-2xl shadow-lg max-h-[90vh] overflow-y-auto">
+    <div class="bg-white w-full max-w-6xl p-6 rounded-2xl shadow-lg max-h-[90vh] overflow-y-auto">
 
         <!-- HEADER -->
         <div class="flex justify-between items-center mb-4">
@@ -368,8 +361,18 @@
     </div>
 </div>
 
-<!-- SCRIPTS -->
+<!-- SCRIPT -->
 <script src="js/vendas.js"></script>
+
+<!-- MENU MOBILE -->
+<script>
+    const btnMenu = document.getElementById('btnMenu');
+    const sidebar = document.getElementById('sidebar');
+
+    btnMenu.addEventListener('click', () => {
+        sidebar.classList.toggle('-translate-x-full');
+    });
+</script>
 
 </body>
 </html>
