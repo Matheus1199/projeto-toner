@@ -24,31 +24,36 @@ async function carregarToners() {
     const toners = await resp.json();
 
     tbody.innerHTML = "";
+    let totalSistema = 0;
 
-    // Preenche a tabela com os toners e o estoque
     toners.forEach((t) => {
-      const linha = document.createElement("tr");
+    totalSistema += Number(t.SaldoSistema);
 
-      linha.innerHTML = `
-                <td class="p-2">${t.Marca} ${t.Modelo}</td>
-                <td class="p-2 font-semibold text-blue-600">${t.SaldoSistema}</td>
-                <td class="p-2">
-                    <input type="number" 
-                           class="border p-1 w-20 rounded estoqueInput"
-                           data-cod="${t.Cod_Produto}"
-                           data-saldo="${t.SaldoSistema}"
-                           value="0" />
-                </td>
-                <td class="p-2 diffCell font-bold text-red-600">0</td>
-                <td class="p-2">
-                    <input type="text" class="border p-1 rounded obsInput" placeholder="OBS">
-                </td>
-            `;
+    const linha = document.createElement("tr");
 
-      tbody.appendChild(linha);
+    linha.innerHTML = `
+            <td class="p-2">${t.Marca} ${t.Modelo}</td>
+            <td class="p-2 font-semibold text-blue-600">${t.SaldoSistema}</td>
+            <td class="p-2">
+                <input type="number" 
+                    class="border p-1 w-20 rounded estoqueInput"
+                    data-cod="${t.Cod_Produto}"
+                    data-saldo="${t.SaldoSistema}"
+                    value="0" />
+            </td>
+            <td class="p-2 diffCell font-bold text-red-600">0</td>
+            <td class="p-2">
+                <input type="text" class="border p-1 rounded obsInput" placeholder="OBS">
+            </td>
+        `;
+
+    tbody.appendChild(linha);
     });
 
     configurarCalculo();
+
+    // ADICIONAR AGORA A LINHA TOTAL
+    adicionarLinhaTotal(totalSistema);
   } catch (e) {
     console.error(e);
   }
@@ -69,6 +74,28 @@ function configurarCalculo() {
   });
 }
 
+function adicionarLinhaTotal(totalSistema) {
+  const tbody = document.getElementById("listaToners");
+
+  const linha = document.createElement("tr");
+  linha.innerHTML = `
+        <td class="p-2 font-bold text-gray-700">TOTAL</td>
+        <td id="totalSistemaCell" class="p-2 font-bold text-blue-600">${totalSistema}</td>
+        <td class="p-2">
+            <input id="totalFisico" type="number" class="border p-1 w-24 rounded" value="0">
+        </td>
+        <td class="p-2">—</td>
+        <td class="p-2">
+            <input id="obsTotal" type="text" class="border p-1 w-24 rounded" placeholder="OBS">
+        </td>
+    `;
+
+  tbody.appendChild(linha);
+}
+
+
+
+
 // Função para salvar a contagem do dia
 async function salvarContagem() {
   const obsGeral = document.getElementById("obsGeral").value;
@@ -79,19 +106,31 @@ async function salvarContagem() {
 
   linhas.forEach((linha) => {
     const inputEstoque = linha.querySelector(".estoqueInput");
+
+    // Se a linha não for de item (ex: TOTAL), pula
+    if (!inputEstoque) return;
+
     const inputObs = linha.querySelector(".obsInput");
-    const diff = linha.querySelector(".diffCell");
 
     itens.push({
       cod_toner: parseInt(inputEstoque.dataset.cod),
-      estoque_fisico: Number(inputEstoque.value) || 0,
-      saldo_sistema: Number(inputEstoque.dataset.saldo) || 0,
-      obs: inputObs.value,
+      saldo_sistema: parseInt(inputEstoque.dataset.saldo),
+      estoque_fisico: parseInt(inputEstoque.value || 0),
+      obs: inputObs.value || "",
     });
   });
 
+  const totalSistema = Number(
+    document.getElementById("totalSistemaCell").innerText
+  );
+  const totalFisico = Number(document.getElementById("totalFisico").value || 0);
+  const obsTotal = document.getElementById("obsTotal").value || "";
+
   const payload = {
     obs_geral: obsGeral,
+    obs_total: obsTotal,
+    total_sistema: totalSistema,
+    total_fisico: totalFisico,
     itens,
   };
 

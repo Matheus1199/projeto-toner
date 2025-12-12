@@ -14,6 +14,7 @@ module.exports = {
       // DADOS DO REQUEST
       const usuario = req.session.usuario || "Desconhecido";
       const obsGeral = req.body.obs_geral || null;
+      const obsTotal = req.body.obs_total || null;
       const itens = req.body.itens || [];
 
       // DATA DO DIA (formato: YYYY-MM-DD)
@@ -22,7 +23,9 @@ module.exports = {
       // ---------------------------------------
       // 2.1) VERIFICAR SE JÁ EXISTE CONTAGEM HOJE
       // ---------------------------------------
-      const contagemExistente = await pool.request().input("nome", hoje).query(`
+      const contagemExistente = await pool.request()
+      .input("nome", hoje)
+      .query(`
                     SELECT Id_Contagem 
                     FROM Tbl_ContagemEstoque 
                     WHERE NomeContagem = @nome
@@ -45,12 +48,15 @@ module.exports = {
         .request()
         .input("nome", hoje)
         .input("usuario", usuario)
-        .input("obsGeral", obsGeral).query(`
-                    INSERT INTO Tbl_ContagemEstoque (NomeContagem, Usuario, ObsGeral)
-                    VALUES (@nome, @usuario, @obsGeral);
+        .input("obsGeral", obsGeral)
+        .input("obsTotal", obsTotal)
+        .input("totalSistema", req.body.total_sistema)
+        .input("totalFisico", req.body.total_fisico).query(`
+    INSERT INTO Tbl_ContagemEstoque (NomeContagem, Usuario, ObsGeral, ObsTotal, TotalSistema, TotalFisico)
+    VALUES (@nome, @usuario, @obsGeral, @obsTotal, @totalSistema, @totalFisico);
 
-                    SELECT SCOPE_IDENTITY() AS Id_Contagem;
-                `);
+    SELECT SCOPE_IDENTITY() AS Id_Contagem;
+`);
 
       const idContagem = insertContagem.recordset[0].Id_Contagem;
 
