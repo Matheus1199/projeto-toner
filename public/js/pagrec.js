@@ -51,9 +51,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
       let categoria = "";
 
-      // ==========================
-      // CORREÇÃO DEFINITIVA
-      // ==========================
       if (item.Locacao == 1) {
         categoria = "locacao"; // SEMPRE prevalece
       } else if (tipoBase === "receber") {
@@ -69,24 +66,73 @@ document.addEventListener("DOMContentLoaded", () => {
       const parte = item.Cliente ?? item.Fornecedor ?? "-";
 
       tr.innerHTML = `
-            <td class="p-2">${item.Id_Lancamento}</td>
-            <td class="p-2">${fmtDataReadable(item.Data)}</td>
-            <td class="p-2">${parte}</td>
-            <td class="p-2">${item.Documento ?? "-"}</td>
-            <td class="p-2">${fmtValor(item.Valor)}</td>
-            <td class="p-2">${item.Cond_Pagamento ?? "-"}</td>
-            <td class="p-2">${categoria}</td>
-            <td class="p-2">
-                <div class="inline-flex gap-2">
-                    <button class="px-2 py-1 bg-blue-500 text-white rounded text-xs" onclick="editarLancamento(${
-                      item.Id_Lancamento
-                    })">Editar</button>
-                    <button class="px-2 py-1 bg-red-500 text-white rounded text-xs" onclick="excluirLancamento(${
-                      item.Id_Lancamento
-                    })">Excluir</button>
-                </div>
-            </td>
-        `;
+    <!-- DESKTOP -->
+    <td class="p-2 hidden sm:table-cell">${item.Id_Lancamento}</td>
+    <td class="p-2 hidden sm:table-cell">${fmtDataReadable(item.Data)}</td>
+    <td class="p-2 hidden sm:table-cell">${parte}</td>
+    <td class="p-2 hidden sm:table-cell">${item.Documento ?? "-"}</td>
+    <td class="p-2 hidden sm:table-cell">${fmtValor(item.Valor)}</td>
+    <td class="p-2 hidden sm:table-cell">${item.Cond_Pagamento ?? "-"}</td>
+    <td class="p-2 hidden sm:table-cell">${categoria}</td>
+    <td class="p-2 hidden sm:table-cell">
+        <div class="inline-flex gap-2">
+            <button class="px-2 py-1 bg-blue-500 text-white rounded text-xs"
+                onclick="editarLancamento(${
+                  item.Id_Lancamento
+                })">Editar</button>
+            <button class="px-2 py-1 bg-red-500 text-white rounded text-xs"
+                onclick="excluirLancamento(${
+                  item.Id_Lancamento
+                })">Excluir</button>
+        </div>
+    </td>
+
+    <!-- MOBILE -->
+    <td class="sm:hidden p-3">
+        <div class="bg-gray-50 border rounded-xl p-3 space-y-2 text-left">
+
+            <div class="flex justify-between text-sm">
+                <span class="font-medium text-gray-600">Data</span>
+                <span>${fmtDataReadable(item.Data)}</span>
+            </div>
+
+            <div class="flex justify-between text-sm">
+                <span class="font-medium text-gray-600">Parte</span>
+                <span>${parte}</span>
+            </div>
+
+            <div class="flex justify-between text-sm">
+                <span class="font-medium text-gray-600">Documento</span>
+                <span>${item.Documento ?? "-"}</span>
+            </div>
+
+            <div class="flex justify-between text-sm">
+                <span class="font-medium text-gray-600">Valor</span>
+                <span class="font-bold text-green-600">${fmtValor(
+                  item.Valor
+                )}</span>
+            </div>
+
+            <div class="flex justify-between text-sm">
+                <span class="font-medium text-gray-600">Categoria</span>
+                <span>${categoria}</span>
+            </div>
+
+            <div class="flex gap-2 pt-2">
+                <button class="flex-1 py-2 bg-blue-500 text-white rounded text-sm"
+                    onclick="editarLancamento(${item.Id_Lancamento})">
+                    Editar
+                </button>
+                <button class="flex-1 py-2 bg-red-500 text-white rounded text-sm"
+                    onclick="excluirLancamento(${item.Id_Lancamento})">
+                    Excluir
+                </button>
+            </div>
+        </div>
+    </td>
+`;
+
+
 
       return tr;
     }

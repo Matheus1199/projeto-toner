@@ -14,125 +14,153 @@
     <!-- Script global -->
     <script src="/js/global.js" defer></script>
 </head>
-<body class="bg-gray-100">
 
-    <!-- SIDEBAR LATERAL -->
-    <aside class="w-64 bg-white shadow-md flex flex-col fixed h-full">
-        <div class="flex items-center gap-2 px-6 py-4 border-b">
-            <h1 class="text-xl font-bold text-gray-700">Sistema de toner</h1>
-        </div>
+<body class="bg-gray-100 min-h-screen flex">
 
-        <nav class="flex-1 mt-4">
-            <ul class="space-y-1">
+<!-- BOTÃO MENU MOBILE -->
+<button id="btnMenu"
+        class="md:hidden fixed top-4 left-4 z-50 bg-blue-600 text-white p-2 rounded-lg shadow">
+    <i class='bx bx-menu text-2xl'></i>
+</button>
 
-                <li><a href="dashboard.html" class="flex items-center px-6 py-3 text-gray-600 hover:bg-gray-100"><i class='bx bxs-dashboard text-xl mr-3'></i> Dashboard</a></li>
+<!-- SIDEBAR -->
+<aside id="sidebar"
+       class="w-64 bg-white shadow-md flex flex-col fixed h-full z-40
+              -translate-x-full md:translate-x-0 transition-transform duration-300">
 
-                <li><a href="toners.html" class="flex items-center px-6 py-3 text-gray-600 hover:bg-gray-100"><i class='bx bxs-printer text-xl mr-3'></i> Toners</a></li>
-
-                <li><a href="clientes.html" class="flex items-center px-6 py-3 text-gray-600 hover:bg-gray-100"><i class='bx bxs-user text-xl mr-3'></i> Clientes</a></li>
-
-                <li><a href="fornecedores.html" class="flex items-center px-6 py-3 text-gray-600 hover:bg-gray-100"><i class='bx bxs-truck text-xl mr-3'></i> Fornecedores</a></li>
-
-                <li><a href="vendas.html" class="flex items-center px-6 py-3 text-gray-600 hover:bg-gray-100"><i class='bx bxs-cart text-xl mr-3'></i> Vendas</a></li>
-
-                <li><a href="compras.html" class="flex items-center px-6 py-3 text-gray-600 hover:bg-gray-100"><i class='bx bxs-basket text-xl mr-3'></i> Compras</a></li>
-
-                <li><a href="pagrec.html" class="flex items-center px-6 py-3 text-gray-600 hover:bg-gray-100"><i class='bx bxs-wallet text-xl mr-3'></i> Pagamentos / Recebimentos</a></li>
-
-                <li>
-                    <a href="contas.html" class="flex items-center px-6 py-3 text-blue-600 bg-blue-50 border-r-4 border-blue-600 font-medium">
-                        <i class='bx bxs-bank text-xl mr-3'></i> Contas
-                    </a>
-                </li>
-
-                <li><a href="contagem.html" class="flex items-center px-6 py-3 text-gray-600 hover:bg-gray-100"><i class='bx bxs-box text-xl mr-3'></i> Contagem Estoque</a></li>
-            </ul>
-        </nav>
-    </aside>
-
-    <!-- CONTEÚDO PRINCIPAL -->
-    <div class="ml-64 p-6">
-
-        <div class="flex justify-between items-center mb-4">
-            <h1 class="text-2xl font-bold text-gray-700">Contas</h1>
-
-            <button onclick="openModal()"
-                class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded shadow flex items-center gap-2">
-                <i class='bx bx-plus'></i> Novo Lançamento
-            </button>
-        </div>
-
-        <!-- Tabela -->
-        <div class="bg-white rounded shadow p-4 overflow-x-auto">
-            <table class="w-full min-w-[700px]">
-                <thead>
-                    <tr class="bg-gray-200 text-left">
-                        <th class="p-2">ID</th>
-                        <th class="p-2">Nome</th>
-                        <th class="p-2">Saldo</th>
-                        <th class="p-2">Empresa</th>
-                        <th class="p-2">Ativo</th>
-                        <th class="p-2">Atualização</th>
-                    </tr>
-                </thead>
-                <tbody id="tabelaContas"></tbody>
-            </table>
-        </div>
-        <!-- BLOCO DO SALDO TOTAL -->
-        <div class="w-full bg-white shadow-md rounded-lg p-4 mb-4">
-            <h2 class="text-lg font-semibold text-gray-700">
-                Saldo Total das Contas
-            </h2>
-
-            <p id="saldoTotal" class="text-2xl font-bold text-green-600 mt-1">
-                R$ 0,00
-            </p>
-        </div>
+    <div class="flex items-center gap-2 px-6 py-4 border-b">
+        <h1 class="text-xl font-bold text-gray-700">Sistema de toner</h1>
     </div>
 
-    <!-- MODAL -->
-    <div id="modalLancamento" class="fixed inset-0 bg-black bg-opacity-40 hidden justify-center items-center">
-        <div class="bg-white w-11/12 max-w-lg p-6 rounded shadow relative">
+    <nav class="flex-1 mt-4 overflow-y-auto">
+        <ul class="space-y-1">
+            <li><a href="dashboard.html" class="flex items-center px-6 py-3 text-gray-600 hover:bg-gray-100">
+                <i class='bx bxs-dashboard text-xl mr-3'></i> Dashboard</a></li>
+            <li><a href="toners.html" class="flex items-center px-6 py-3 text-gray-600 hover:bg-gray-100">
+                <i class='bx bxs-printer text-xl mr-3'></i> Toners</a></li>
+            <li><a href="clientes.html" class="flex items-center px-6 py-3 text-gray-600 hover:bg-gray-100">
+                <i class='bx bxs-user text-xl mr-3'></i> Clientes</a></li>
+            <li><a href="fornecedores.html" class="flex items-center px-6 py-3 text-gray-600 hover:bg-gray-100">
+                <i class='bx bxs-truck text-xl mr-3'></i> Fornecedores</a></li>
+            <li><a href="vendas.html" class="flex items-center px-6 py-3 text-gray-600 hover:bg-gray-100">
+                <i class='bx bxs-cart text-xl mr-3'></i> Vendas</a></li>
+            <li><a href="compras.html" class="flex items-center px-6 py-3 text-gray-600 hover:bg-gray-100">
+                <i class='bx bxs-basket text-xl mr-3'></i> Compras</a></li>
+            <li><a href="pagrec.html" class="flex items-center px-6 py-3 text-gray-600 hover:bg-gray-100">
+                <i class='bx bxs-wallet text-xl mr-3'></i> Pagamentos / Recebimentos</a></li>
+            <li>
+                <a href="contas.html"
+                   class="flex items-center px-6 py-3 text-blue-600 bg-blue-50 border-r-4 border-blue-600 font-medium">
+                    <i class='bx bxs-bank text-xl mr-3'></i> Contas
+                </a>
+            </li>
+            <li><a href="contagem.html" class="flex items-center px-6 py-3 text-gray-600 hover:bg-gray-100">
+                <i class='bx bxs-box text-xl mr-3'></i> Contagem Estoque</a></li>
+        </ul>
+    </nav>
+</aside>
 
-            <button onclick="closeModal()" class="absolute top-3 right-3 text-gray-500 hover:text-black">
-                <i class='bx bx-x text-2xl'></i>
-            </button>
+<!-- CONTEÚDO PRINCIPAL -->
+<main class="flex-1 w-full p-4 md:p-6 md:ml-64 mt-16 md:mt-0">
 
-            <h2 class="text-xl font-semibold mb-4">Novo Lançamento Manual</h2>
+    <!-- HEADER -->
+    <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-4">
+        <h1 class="text-2xl font-bold text-gray-700">Contas</h1>
 
-            <form id="formLancamento" class="space-y-4">
+        <button onclick="openModal()"
+                class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded shadow flex items-center gap-2 w-full sm:w-auto">
+            <i class='bx bx-plus'></i> Novo Lançamento
+        </button>
+    </div>
 
-                <div>
-                    <label class="font-medium">Conta:</label>
-                    <select id="conta" class="w-full border p-2 rounded" required></select>
-                </div>
+    <!-- TABELA / LISTA -->
+    <div class="bg-white rounded shadow p-4">
+        <table class="w-full text-sm">
+            <thead class="bg-gray-200">
+                <tr>
+                    <th class="p-2">ID</th>
+                    <th class="p-2">Nome</th>
+                    <th class="p-2">Saldo</th>
+                    <th class="p-2">Empresa</th>
+                    <th class="p-2">Ativo</th>
+                    <th class="p-2">Atualização</th>
+                </tr>
+            </thead>
+            <tbody id="tabelaContas"></tbody>
+        </table>
+    </div>
 
-                <div>
-                    <label class="font-medium">Valor:</label>
-                    <input type="number" step="0.01" id="valor" class="w-full border p-2 rounded" required>
-                </div>
+    <!-- SALDO TOTAL -->
+    <div class="w-full bg-white shadow-md rounded-lg p-4 mt-4">
+        <h2 class="text-lg font-semibold text-gray-700">
+            Saldo Total das Contas
+        </h2>
+        <p id="saldoTotal" class="text-2xl font-bold text-green-600 mt-1">
+            R$ 0,00
+        </p>
+    </div>
 
-                <div>
-                    <label class="font-medium">Operação:</label>
-                    <select id="operacao" class="w-full border p-2 rounded" required>
-                        <option value="1">Crédito</option>
-                        <option value="2">Débito</option>
-                    </select>
-                </div>
+</main>
 
-                <div>
-                    <label class="font-medium">Observação:</label>
-                    <textarea id="obs" class="w-full border p-2 rounded" rows="3"></textarea>
-                </div>
+<!-- MODAL -->
+<div id="modalLancamento"
+     class="fixed inset-0 bg-black bg-opacity-40 hidden flex justify-center items-center z-50 px-4">
 
-                <button type="submit"
+    <div class="bg-white w-full max-w-lg p-6 rounded shadow relative">
+
+        <button onclick="closeModal()"
+                class="absolute top-3 right-3 text-gray-500 hover:text-black">
+            <i class='bx bx-x text-2xl'></i>
+        </button>
+
+        <h2 class="text-xl font-semibold mb-4">Novo Lançamento Manual</h2>
+
+        <form id="formLancamento" class="space-y-4">
+
+            <div>
+                <label class="font-medium">Conta:</label>
+                <select id="conta" class="w-full border p-2 rounded" required></select>
+            </div>
+
+            <div>
+                <label class="font-medium">Valor:</label>
+                <input type="number" step="0.01" id="valor"
+                       class="w-full border p-2 rounded" required>
+            </div>
+
+            <div>
+                <label class="font-medium">Operação:</label>
+                <select id="operacao" class="w-full border p-2 rounded" required>
+                    <option value="1">Crédito</option>
+                    <option value="2">Débito</option>
+                </select>
+            </div>
+
+            <div>
+                <label class="font-medium">Observação:</label>
+                <textarea id="obs" class="w-full border p-2 rounded" rows="3"></textarea>
+            </div>
+
+            <button type="submit"
                     class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded shadow w-full">
-                    Salvar Lançamento
-                </button>
+                Salvar Lançamento
+            </button>
 
-            </form>
-        </div>
+        </form>
     </div>
-    <script src="/js/contas.js"></script>
+</div>
+
+<script src="/js/contas.js"></script>
+
+<!-- MENU MOBILE -->
+<script>
+    const btnMenu = document.getElementById('btnMenu');
+    const sidebar = document.getElementById('sidebar');
+
+    btnMenu.addEventListener('click', () => {
+        sidebar.classList.toggle('-translate-x-full');
+    });
+</script>
+
 </body>
 </html>

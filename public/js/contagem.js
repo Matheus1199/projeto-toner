@@ -27,28 +27,88 @@ async function carregarToners() {
     let totalSistema = 0;
 
     toners.forEach((t) => {
-    totalSistema += Number(t.SaldoSistema);
+      totalSistema += Number(t.SaldoSistema);
 
-    const linha = document.createElement("tr");
+      const linha = document.createElement("tr");
 
-    linha.innerHTML = `
-            <td class="p-2">${t.Marca} ${t.Modelo}</td>
-            <td class="p-2 font-semibold text-blue-600">${t.SaldoSistema}</td>
-            <td class="p-2">
-                <input type="number" 
-                    class="border p-1 w-20 rounded estoqueInput"
-                    data-cod="${t.Cod_Produto}"
-                    data-saldo="${t.SaldoSistema}"
-                    value="0" />
-            </td>
-            <td class="p-2 diffCell font-bold text-red-600">0</td>
-            <td class="p-2">
-                <input type="text" class="border p-1 rounded obsInput" placeholder="OBS">
-            </td>
-        `;
+      linha.innerHTML = `
+        <!-- ================= DESKTOP ================= -->
+        <td class="hidden sm:table-cell p-2">
+            ${t.Marca} ${t.Modelo}
+        </td>
 
-    tbody.appendChild(linha);
+        <td class="hidden sm:table-cell p-2 font-semibold text-blue-600">
+            ${t.SaldoSistema}
+        </td>
+
+        <td class="hidden sm:table-cell p-2">
+            <input type="number"
+                class="border p-1 w-20 rounded estoqueInput text-center"
+                data-cod="${t.Cod_Produto}"
+                data-saldo="${t.SaldoSistema}"
+                value="0" />
+        </td>
+
+        <td class="hidden sm:table-cell p-2 diffCell font-bold text-red-600 text-center">
+            0
+        </td>
+
+        <td class="hidden sm:table-cell p-2">
+            <input type="text"
+                class="border p-1 rounded obsInput w-full"
+                placeholder="OBS">
+        </td>
+
+        <!-- ================= MOBILE ================= -->
+        <td class="sm:hidden p-3">
+            <div class="bg-gray-50 border rounded-xl p-4 space-y-3">
+
+                <!-- MODELO -->
+                <div class="font-semibold text-gray-800">
+                    ${t.Marca} ${t.Modelo}
+                </div>
+
+                <!-- SALDO -->
+                <div class="flex justify-between text-sm">
+                    <span class="text-gray-500">Saldo Sistema</span>
+                    <span class="font-bold text-blue-600">${t.SaldoSistema}</span>
+                </div>
+
+                <!-- ESTOQUE FÍSICO -->
+                <div>
+                    <label class="text-sm text-gray-600 block mb-1">
+                        Estoque Físico
+                    </label>
+                    <input type="number"
+                        class="w-full border rounded-lg p-2 text-center text-lg estoqueInput"
+                        data-cod="${t.Cod_Produto}"
+                        data-saldo="${t.SaldoSistema}"
+                        value="0" />
+                </div>
+
+                <!-- DIFERENÇA -->
+                <div class="flex justify-between text-sm">
+                    <span class="text-gray-500">Diferença</span>
+                    <span class="font-bold text-red-600 diffCell">0</span>
+                </div>
+
+                <!-- OBS -->
+                <div>
+                    <label class="text-sm text-gray-600 block mb-1">
+                        Observação
+                    </label>
+                    <input type="text"
+                        class="w-full border rounded-lg p-2 obsInput"
+                        placeholder="Opcional">
+                </div>
+
+            </div>
+        </td>
+    `;
+
+      tbody.appendChild(linha);
     });
+
 
     configurarCalculo();
 
@@ -78,23 +138,78 @@ function adicionarLinhaTotal(totalSistema) {
   const tbody = document.getElementById("listaToners");
 
   const linha = document.createElement("tr");
+
   linha.innerHTML = `
-        <td class="p-2 font-bold text-gray-700">TOTAL</td>
-        <td id="totalSistemaCell" class="p-2 font-bold text-blue-600">${totalSistema}</td>
-        <td class="p-2">
-            <input id="totalFisico" type="number" class="border p-1 w-24 rounded" value="0">
+        <!-- ================= DESKTOP ================= -->
+        <td class="hidden sm:table-cell p-2 font-bold text-gray-700">
+            TOTAL
         </td>
-        <td class="p-2">—</td>
-        <td class="p-2">
-            <input id="obsTotal" type="text" class="border p-1 w-24 rounded" placeholder="OBS">
+
+        <td id="totalSistemaCell"
+            class="hidden sm:table-cell p-2 font-bold text-blue-600 text-center">
+            ${totalSistema}
+        </td>
+
+        <td class="hidden sm:table-cell p-2 text-center">
+            <input id="totalFisico"
+                   type="number"
+                   class="border p-1 w-24 rounded text-center font-semibold"
+                   value="0">
+        </td>
+
+        <td class="hidden sm:table-cell p-2 text-center font-bold">
+            —
+        </td>
+
+        <td class="hidden sm:table-cell p-2">
+            <input id="obsTotal"
+                   type="text"
+                   class="border p-1 w-full rounded"
+                   placeholder="OBS">
+        </td>
+
+        <!-- ================= MOBILE ================= -->
+        <td class="sm:hidden p-3">
+            <div class="bg-blue-50 border-2 border-blue-500 rounded-xl p-4 space-y-3">
+
+                <div class="text-lg font-bold text-blue-700 text-center">
+                    TOTAL GERAL
+                </div>
+
+                <div class="flex justify-between text-sm">
+                    <span class="text-gray-600">Saldo Sistema</span>
+                    <span id="totalSistemaCell"
+                          class="font-bold text-blue-700">
+                        ${totalSistema}
+                    </span>
+                </div>
+
+                <div>
+                    <label class="text-sm text-gray-600 block mb-1">
+                        Total Físico
+                    </label>
+                    <input id="totalFisico"
+                           type="number"
+                           class="w-full border rounded-lg p-2 text-center text-lg font-semibold"
+                           value="0">
+                </div>
+
+                <div>
+                    <label class="text-sm text-gray-600 block mb-1">
+                        Observação Geral
+                    </label>
+                    <input id="obsTotal"
+                           type="text"
+                           class="w-full border rounded-lg p-2"
+                           placeholder="OBS">
+                </div>
+
+            </div>
         </td>
     `;
 
   tbody.appendChild(linha);
 }
-
-
-
 
 // Função para salvar a contagem do dia
 async function salvarContagem() {
