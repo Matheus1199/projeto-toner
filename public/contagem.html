@@ -65,7 +65,9 @@
     </p>
 
     <!-- CARD DATA -->
-    <div class="bg-white p-5 rounded-2xl shadow-sm border mb-6">
+    <div class="bg-white p-5 rounded-2xl shadow-sm border mb-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+
+    <div>
         <h3 class="text-lg md:text-xl text-gray-600 font-semibold">
             Contagem do dia
             <span id="dataHoje" class="text-blue-600 font-bold"></span>
@@ -78,27 +80,136 @@
                class="w-full border p-3 rounded-lg mt-2 shadow-sm bg-gray-50 focus:bg-white">
     </div>
 
-    <!-- LISTA / TABELA -->
-    <div class="bg-white p-5 rounded-2xl shadow-sm border">
-        <h3 class="font-semibold text-gray-700 mb-4">Itens em Estoque</h3>
-
-        <table class="w-full text-sm">
-            <thead class="bg-gray-200 hidden sm:table-header-group">
-                <tr>
-                    <th class="py-2 px-3">Modelo</th>
-                    <th class="py-2 px-3">Saldo Sistema</th>
-                    <th class="py-2 px-3">Estoque Físico</th>
-                    <th class="py-2 px-3">Diferença</th>
-                    <th class="py-2 px-3">OBS</th>
-                </tr>
-            </thead>
-            <tbody id="listaToners"></tbody>
-        </table>
+    <!-- BOTÃO INICIAR CONTAGEM -->
+    <div id="inicioContagem">
+        <button id="btnIniciar"
+                class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl shadow font-semibold whitespace-nowrap">
+            Iniciar Contagem
+        </button>
     </div>
+</div>
+
+<!-- ÚLTIMAS CONTAGENS -->
+<div id="ultimasContagens" class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+
+    <!-- Card será gerado via JS -->
+</div>
+
+
+    <!-- CARD DE CONTAGEM -->
+    <div id="cardContagem" class="hidden max-w-xl mx-auto">
+
+        <p id="contador" class="text-sm text-gray-400 mb-2 text-center"></p>
+
+        <h4 id="nomeToner" class="text-xl font-bold text-gray-700 mb-4 text-center"></h4>
+
+        <div class="flex justify-between mb-2">
+            <span class="text-gray-600">Saldo Sistema:</span>
+            <span id="saldoSistema" class="font-bold text-blue-600"></span>
+        </div>
+
+        <label class="block font-medium mt-4">Estoque Físico:</label>
+        <input id="estoqueFisico"
+               type="number"
+               class="w-full border p-3 rounded-lg mt-2 shadow-sm bg-gray-50 focus:bg-white">
+
+        <div class="mt-4">
+            <span class="text-gray-600">Diferença:</span>
+            <span id="diferenca" class="font-bold ml-2"></span>
+        </div>
+
+        <label class="block font-medium mt-4">OBS:</label>
+        <input id="obsItem"
+               type="text"
+               class="w-full border p-2 rounded mt-2"
+               placeholder="OBS do item">
+
+        <div class="flex justify-between mt-6">
+            <button id="btnAnterior"
+                    class="px-4 py-2 border rounded-lg">
+                ← Anterior
+            </button>
+
+            <button id="btnProximo"
+                    class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg">
+                Próximo →
+            </button>
+        </div>
+
+    </div>
+    <!-- CARD RESUMO TOTAL -->
+    <div id="cardTotal" class="hidden max-w-xl mx-auto bg-white p-5 rounded-2xl shadow-sm border">
+
+    <h3 class="text-xl font-bold text-gray-700 text-center mb-4">
+        Contagem Total do Estoque
+    </h3>
+
+    <div class="flex justify-between mb-3">
+        <span>Total Sistema:</span>
+        <span id="totalSistemaResumo" class="font-bold text-blue-600"></span>
+    </div>
+
+    <label class="block font-medium mt-4">Total Físico:</label>
+    <input id="totalFisico"
+           type="number"
+           class="w-full border p-3 rounded-lg mt-2">
+
+    <label class="block font-medium mt-4">Observação Geral do Total:</label>
+    <input id="obsTotal"
+           type="text"
+           class="w-full border p-2 rounded mt-2">
+
+    <button id="btnResumo"
+            class="mt-6 bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl w-full">
+        Ver Resumo
+    </button>
+</div>
+</div>
+
+<div id="cardResumo" class="hidden bg-white p-5 rounded-2xl shadow-sm border">
+
+    <h3 class="text-xl font-bold text-gray-700 mb-4">
+        Divergências Encontradas
+    </h3>
+
+    <div id="listaDivergencias" class="space-y-3"></div>
+
+</div>
+
+<!-- MODAL DIVERGÊNCIAS (SOMENTE LEITURA) -->
+<div id="modalDivergencias"
+     class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+
+    <div class="bg-white w-full max-w-3xl rounded-2xl shadow-lg p-6 relative">
+
+        <!-- FECHAR -->
+        <button onclick="fecharModal()"
+                class="absolute top-4 right-4 text-gray-500 hover:text-gray-700">
+            <i class='bx bx-x text-2xl'></i>
+        </button>
+
+        <h3 class="text-xl font-bold text-gray-700 mb-4">
+            Divergências da Contagem
+        </h3>
+
+        <div id="listaModalDivergencias"
+             class="space-y-4 max-h-[60vh] overflow-y-auto">
+            <!-- Conteúdo dinâmico -->
+        </div>
+
+        <button onclick="fecharModal()"
+                class="mt-6 bg-gray-200 hover:bg-gray-300 text-gray-700 px-6 py-3 rounded-xl w-full">
+            Fechar
+        </button>
+
+    </div>
+</div>
+
+
 
     <!-- BOTÃO SALVAR -->
     <button id="btnSalvar"
-            class="mt-6 bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl shadow font-semibold w-full sm:w-auto">
+            class="hidden mt-6 bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl shadow font-semibold w-full sm:w-auto">
         Salvar Contagem do Dia
     </button>
 

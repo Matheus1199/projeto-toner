@@ -23,9 +23,7 @@ module.exports = {
       // ---------------------------------------
       // 2.1) VERIFICAR SE JÁ EXISTE CONTAGEM HOJE
       // ---------------------------------------
-      const contagemExistente = await pool.request()
-      .input("nome", hoje)
-      .query(`
+      const contagemExistente = await pool.request().input("nome", hoje).query(`
                     SELECT Id_Contagem 
                     FROM Tbl_ContagemEstoque 
                     WHERE NomeContagem = @nome
@@ -91,6 +89,54 @@ module.exports = {
         erro: true,
         mensagem: "Erro ao salvar contagem.",
       });
+    }
+  },
+
+  ultimasDivergencias: async (req, res) => {
+    const pool = req.app.get("db");
+
+    try {
+      const result = await pool.request().query(`
+      SELECT TOP 3
+          c.Id_Contagem,
+          c.NomeContagem,
+          c.Usuario,
+          COUNT(i.Id_Item) AS QtdDivergencias
+      FROM Tbl_ContagemEstoque c
+      JOIN Tbl_ContagemItens i ON i.Id_Contagem = c.Id_Contagem
+      WHERE i.SaldoSistema <> i.EstoqueFisico
+      GROUP BY c.Id_Contagem, c.NomeContagem, c.Usuario
+      ORDER BY c.Id_Contagem DESC
+    `);
+
+      res.json(result.recordset);
+    } catch (e) {
+      res.status(500).json({ erro: true });
+    }
+  },
+
+  divergencias: async (req, res) => {
+    const pool = req.app.get("db");
+    const id = req.params.id;
+
+    try {
+      const result = await pool.request().input("id", id).query(`
+        SELECT 
+            i.Id_Item,
+            t.Marca,
+            t.Modelo,
+            i.SaldoSistema,
+            i.EstoqueFisico,
+            i.Obs
+        FROM Tbl_ContagemItens i
+        JOIN Tbl_Toner t ON t.Cod_Produto = i.Cod_Toner
+        WHERE i.Id_Contagem = @id
+          AND i.SaldoSistema <> i.EstoqueFisico
+      `);
+
+      res.json(result.recordset);
+    } catch (e) {
+      res.status(500).json({ erro: true });
     }
   },
 };
