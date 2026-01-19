@@ -1,183 +1,342 @@
 document.addEventListener("DOMContentLoaded", () => {
+  // =====================================================
+  // ELEMENTOS
+  // =====================================================
+  const modal = document.getElementById("modal-bg");
+  const btnNovoToner = document.getElementById("btnNovoToner");
+  const salvarBtn = document.getElementById("salvarToner");
 
-    const modal = document.getElementById("modal-bg");
-    const btnNovoToner = document.getElementById("btnNovoToner");
-    const salvarBtn = document.getElementById("salvarToner");
+  const inputBusca = document.getElementById("pesquisaInteligente");
+  const resultado = document.getElementById("resultado");
 
-    // inputs de pesquisa
-    const inputModelo = document.getElementById("pesquisaModelo");
-    const inputMarca = document.getElementById("pesquisaMarca");
-    const inputTipo = document.getElementById("pesquisaTipo");
-    const resultado = document.getElementById("resultado");
+  let timeout;
 
-    let timeout;
+  // =====================================================
+  // DROPDOWN
+  // =====================================================
+  const dropdown = document.createElement("div");
+  dropdown.className = `
+  absolute left-0 right-0 top-full mt-2
+  bg-gray-50/95 backdrop-blur
+  border border-gray-200
+  rounded-2xl shadow-2xl
+  max-h-72 overflow-y-auto
+  z-50 hidden
+`;
+dropdown.id = "dropdown-toner";
+  inputBusca.parentNode.style.position = "relative";
+  inputBusca.parentNode.appendChild(dropdown);
 
-    // ========== MODAL ==========
-    btnNovoToner.onclick = () => {
-        document.getElementById("modalTitle").innerText = "Novo Toner";
-        document.getElementById("codProduto").value = "";
-        document.getElementById("modelo").value = "";
-        document.getElementById("marca").value = "";
-        document.getElementById("tipo").value = "";
-        document.getElementById("locacao").checked = false;
-        modal.classList.remove("hidden");
+  // =====================================================
+  // MODAL
+  // =====================================================
+  btnNovoToner.onclick = () => {
+    document.getElementById("modalTitle").innerText = "Novo Toner";
+    document.getElementById("codProduto").value = "";
+    document.getElementById("modelo").value = "";
+    document.getElementById("marca").value = "";
+    document.getElementById("tipo").value = "";
+    document.getElementById("locacao").checked = false;
+    modal.classList.remove("hidden");
+  };
+
+  window.fecharModal = () => modal.classList.add("hidden");
+
+  // =====================================================
+  // SALVAR TONER
+  // =====================================================
+  salvarBtn.onclick = async () => {
+    const id = document.getElementById("codProduto").value;
+
+    const dados = {
+      modelo: document.getElementById("modelo").value,
+      marca: document.getElementById("marca").value,
+      tipo: document.getElementById("tipo").value,
+      locacao: document.getElementById("locacao").checked ? 1 : 0,
     };
 
-    window.fecharModal = () => modal.classList.add("hidden");
+    const url = id ? `/toners/${id}` : "/toners";
+    const method = id ? "PUT" : "POST";
 
-    // ========== SALVAR TONER ==========
-    salvarBtn.onclick = async () => {
-        const id = document.getElementById("codProduto").value;
+    const res = await fetch(url, {
+      method,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(dados),
+    });
 
-        const dados = {
-            modelo: document.getElementById("modelo").value,
-            marca: document.getElementById("marca").value,
-            tipo: document.getElementById("tipo").value,
-            locacao: document.getElementById("locacao").checked ? 1 : 0
-        };
-
-        const url = id ? `/toners/${id}` : "/toners";
-        const method = id ? "PUT" : "POST";
-
-        const res = await fetch(url, {
-            method,
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(dados)
-        });
-
-        if (!res.ok) return alert("Erro ao salvar toner.");
-
-        alert("Toner salvo com sucesso!");
-        fecharModal();
-    };
-
-    // ========== EVENTOS DE PESQUISA ==========
-    inputModelo.oninput = () => iniciarBusca("modelo", inputModelo.value);
-    inputMarca.oninput = () => iniciarBusca("marca", inputMarca.value);
-    inputTipo.oninput = () => iniciarBusca("tipo", inputTipo.value);
-
-    function iniciarBusca(tipo, termo) {
-        clearTimeout(timeout);
-        timeout = setTimeout(() => buscarToner(tipo, termo), 400);
+    if (!res.ok) {
+      alert("Erro ao salvar toner.");
+      return;
     }
 
-    // ========== BUSCAR TONER ==========
-    async function buscarToner(tipo, termo) {
-      if (!termo.trim()) {
-        resultado.classList.add("hidden");
-        resultado.innerHTML = "";
-        return;
-      }
+    alert("Toner salvo com sucesso!");
+    fecharModal();
+  };
 
-      const res = await fetch(
-        `/toners/pesquisar?tipo=${tipo}&termo=${encodeURIComponent(termo)}`
-      );
-      const data = await res.json();
+  // =====================================================
+  // BUSCA INTELIGENTE (DEBOUNCE)
+  // =====================================================
+  inputBusca.oninput = () => {
+    clearTimeout(timeout);
+    timeout = setTimeout(() => buscarInteligente(), 300);
+  };
 
-      resultado.classList.remove("hidden");
-      resultado.innerHTML = "";
+  async function buscarInteligente() {
+    const termo = inputBusca.value.trim();
 
-      if (data.error) {
-        resultado.innerHTML = `<p class="text-red-600">${data.error}</p>`;
-        return;
-      }
+    if (termo.length < 2) {
+      dropdown.classList.add("hidden");
+      resultado.classList.add("hidden");
+      return;
+    }
 
-      // =====================================================
-      // 🔍 PESQUISA POR MODELO - MOSTRA DETALHES DO TONER
-      // =====================================================
-      if (data.tipo === "modelo") {
-        resultado.innerHTML = `
-                <div class="p-6 bg-white rounded-2xl shadow border">
-                    <h2 class="text-xl font-bold">${data.toner.modelo}</h2>
-                    <p><strong>Marca:</strong> ${data.toner.marca}</p>
-                    <p><strong>Tipo:</strong> ${data.toner.tipo}</p>
-            
-                    <div class="mt-4 p-4 bg-blue-50 border-l-4 border-blue-600 rounded">
-                        <p class="font-semibold text-blue-800">
-                            <i class='bx bxs-box mr-2'></i>
-                            Em estoque: ${data.toner.estoque} unidades
-                        </p>
-                    </div>
-            
-                    <h3 class="mt-6 font-semibold text-lg">Últimas 5 vendas</h3>
-                    <table class="w-full mt-2 border">
-                        <thead>
-                            <tr class="bg-gray-100">
-                                <th class="p-2">Data</th>
-                                <th class="p-2">Cliente</th>
-                                <th class="p-2">Qtd</th>
-                                <th class="p-2">Valor</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            ${
-                              data.vendas.length > 0
-                                ? data.vendas
-                                    .map(
-                                      (v) => `
-                                        <tr>
-                                            <td class="p-2 text-center">${new Date(
-                                              v.Data_Venda
-                                            ).toLocaleDateString()}</td>
-                                            <td class="p-2 text-center">${
-                                              v.Cliente
-                                            }</td>
-                                            <td class="p-2 text-center">${
-                                              v.Quantidade
-                                            }</td>
-                                            <td class="p-2 text-center">R$ ${parseFloat(
-                                              v.Valor_Venda
-                                            ).toFixed(2)}</td>
-                                        </tr>
-                                    `
-                                    )
-                                    .join("")
-                                : `<tr><td colspan="4" class="p-2 text-gray-500">Nenhuma venda encontrada.</td></tr>`
-                            }
-                        </tbody>
-                    </table>
-                </div>
-            `;
-        return;
-      }
-
-      // =====================================================
-      // 🔍 PESQUISA POR MARCA / TIPO — MOSTRA LISTA
-      // =====================================================
-      if (data.tipo === "marca" || data.tipo === "tipo") {
-        resultado.innerHTML = `
-        <div class="p-4 md:p-6 bg-white rounded-2xl shadow border">
-            <h2 class="text-xl font-bold mb-4">Resultados</h2>
-
-            <!-- wrapper para scroll no mobile -->
-            <div class="overflow-x-auto">
-                <table class="min-w-full border text-sm">
-                    <thead>
-                        <tr class="bg-gray-100 text-left">
-                            <th class="p-3 whitespace-nowrap">Modelo</th>
-                            <th class="p-3 whitespace-nowrap">Marca</th>
-                            <th class="p-3 whitespace-nowrap">Tipo</th>
-                            <th class="p-3 whitespace-nowrap text-center">Estoque</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${data.toners
-                          .map(
-                            (t) => `
-                                <tr class="border-t hover:bg-gray-50">
-                                    <td class="p-3 whitespace-nowrap">${t.Modelo}</td>
-                                    <td class="p-3 whitespace-nowrap">${t.Marca}</td>
-                                    <td class="p-3 whitespace-nowrap">${t.Tipo}</td>
-                                    <td class="p-3 text-center font-medium">${t.Estoque}</td>
-                                </tr>
-                            `
-                          )
-                          .join("")}
-                    </tbody>
-                </table>
-            </div>
-        </div>
+    dropdown.innerHTML = `
+      <div class="px-4 py-3 text-sm text-gray-400">
+        Buscando...
+      </div>
     `;
-      }
+    dropdown.classList.remove("hidden");
+
+    const res = await fetch(
+      `/toners/busca-inteligente?termo=${encodeURIComponent(termo)}`,
+    );
+
+    const data = await res.json();
+    renderDropdown(data.resultados || []);
+  }
+
+  // =====================================================
+  // RENDER DROPDOWN
+  // =====================================================
+  function renderDropdown(resultados) {
+    if (!resultados.length) {
+      dropdown.classList.add("hidden");
+      return;
     }
+
+    dropdown.innerHTML = resultados
+      .map(
+        (r) => `
+    <div
+      onclick='selecionarItem(${JSON.stringify(r)})'
+      class="
+        group flex items-center justify-between
+        px-4 py-3 mx-2 my-1
+        rounded-xl cursor-pointer
+        hover:bg-white
+        transition-all
+      "
+    >
+      <div class="flex items-center gap-3">
+        <!-- ÍCONE -->
+        <div class="
+          w-9 h-9 flex items-center justify-center
+          rounded-lg
+          ${iconeBg(r.tipo)}
+        ">
+          ${iconeTipo(r.tipo)}
+        </div>
+
+        <!-- TEXTO -->
+        <div>
+          <div class="text-sm font-semibold text-gray-800 leading-tight">
+            ${r.label}
+          </div>
+          ${
+            r.sub
+              ? `
+            <div class="text-xs text-gray-500">
+              ${r.sub}
+            </div>`
+              : ""
+          }
+        </div>
+      </div>
+
+      <!-- BADGE -->
+      <span class="
+        text-[10px] uppercase tracking-wide
+        px-2 py-1 rounded-full
+        ${badgeClasse(r.tipo)}
+      ">
+        ${r.tipo}
+      </span>
+    </div>
+  `,
+      )
+      .join("");
+
+    dropdown.classList.remove("hidden");
+  }
+
+
+  function badgeClasse(tipo) {
+    if (tipo === "modelo") return "bg-blue-50 text-blue-700";
+    if (tipo === "marca") return "bg-green-50 text-green-700";
+    return "bg-purple-50 text-purple-700";
+  }
+
+
+  // =====================================================
+  // SELECIONAR ITEM
+  // =====================================================
+  window.selecionarItem = (item) => {
+    dropdown.classList.add("hidden");
+    inputBusca.value = item.label;
+
+    if (item.tipo === "modelo") {
+      carregarDetalheModelo(item.id);
+    }
+
+    if (item.tipo === "marca" || item.tipo === "tipo") {
+      carregarLista(item.tipo, item.label);
+    }
+  };
+
+  // =====================================================
+  // DETALHE DO MODELO
+  // =====================================================
+  async function carregarDetalheModelo(codProduto) {
+    const res = await fetch(
+      `/toners/pesquisar?tipo=modelo&termo=${codProduto}&detalhado=true`,
+    );
+
+    const data = await res.json();
+    montarResultadoDetalhado(data);
+  }
+
+  function montarResultadoDetalhado(data) {
+    resultado.classList.remove("hidden");
+
+    resultado.innerHTML = `
+      <div class="p-6 bg-white rounded-2xl shadow border space-y-6">
+
+        <div>
+          <h2 class="text-xl font-bold">${data.toner.modelo}</h2>
+          <p><strong>Marca:</strong> ${data.toner.marca}</p>
+          <p><strong>Tipo:</strong> ${data.toner.tipo}</p>
+
+          <div class="mt-4 p-4 bg-blue-50 border-l-4 border-blue-600 rounded">
+            <p class="font-semibold text-blue-800">
+              Em estoque: ${data.toner.estoque} unidades
+            </p>
+          </div>
+        </div>
+
+        ${tabelaHistorico("Últimas 5 vendas", data.vendas, "Cliente", "Valor_Venda", "Data_Venda")}
+        ${tabelaHistorico("Últimas 5 compras", data.compras, "Fornecedor", "Valor_Compra", "Data_Compra")}
+
+      </div>
+    `;
+  }
+
+  function tabelaHistorico(titulo, dados, nomeCampo, valorCampo, dataCampo) {
+    return `
+      <div>
+        <h3 class="font-semibold text-lg mb-2">${titulo}</h3>
+        <div class="overflow-x-auto">
+          <table class="min-w-full border text-sm">
+            <thead>
+              <tr class="bg-gray-100">
+                <th class="p-2">Data</th>
+                <th class="p-2">${nomeCampo}</th>
+                <th class="p-2 text-center">Qtd</th>
+                <th class="p-2 text-right">Valor</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${
+                dados && dados.length
+                  ? dados
+                      .map(
+                        (d) => `
+                    <tr class="border-t">
+                      <td class="p-2 text-center">${new Date(d[dataCampo]).toLocaleDateString()}</td>
+                      <td class="p-2">${d[nomeCampo]}</td>
+                      <td class="p-2 text-center">${d.Quantidade}</td>
+                      <td class="p-2 text-right">R$ ${parseFloat(d[valorCampo]).toFixed(2)}</td>
+                    </tr>
+                  `,
+                      )
+                      .join("")
+                  : `<tr><td colspan="4" class="p-3 text-gray-500 text-center">
+                      Nenhum registro encontrado.
+                     </td></tr>`
+              }
+            </tbody>
+          </table>
+        </div>
+      </div>
+    `;
+  }
+
+  // =====================================================
+  // LISTAGEM (MARCA / TIPO)
+  // =====================================================
+  async function carregarLista(tipo, termo) {
+    const res = await fetch(
+      `/toners/pesquisar?tipo=${tipo}&termo=${encodeURIComponent(termo)}`,
+    );
+
+    const data = await res.json();
+    resultado.classList.remove("hidden");
+
+    resultado.innerHTML = `
+      <div class="p-6 bg-white rounded-2xl shadow border">
+        <h2 class="text-xl font-bold mb-4">Resultados</h2>
+
+        <div class="overflow-x-auto">
+          <table class="min-w-full border text-sm">
+            <thead>
+              <tr class="bg-gray-100">
+                <th class="p-3">Modelo</th>
+                <th class="p-3">Marca</th>
+                <th class="p-3">Tipo</th>
+                <th class="p-3 text-center">Estoque</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${data.toners
+                .map(
+                  (t) => `
+                <tr class="border-t hover:bg-gray-50">
+                  <td class="p-3">${t.Modelo}</td>
+                  <td class="p-3">${t.Marca}</td>
+                  <td class="p-3">${t.Tipo}</td>
+                  <td class="p-3 text-center font-medium">${t.Estoque}</td>
+                </tr>
+              `,
+                )
+                .join("")}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    `;
+  }
+
+  function iconeTipo(tipo) {
+    if (tipo === "modelo") {
+      return `<i class='bx bxs-printer text-blue-600 text-lg'></i>`;
+    }
+    if (tipo === "marca") {
+      return `<i class='bx bxs-factory text-green-600 text-lg'></i>`;
+    }
+    return `<i class='bx bxs-category text-purple-600 text-lg'></i>`;
+  }
+
+  function iconeBg(tipo) {
+    if (tipo === "modelo") return "bg-blue-100";
+    if (tipo === "marca") return "bg-green-100";
+    return "bg-purple-100";
+  }
+
+  // =====================================================
+  // FECHAR DROPDOWN AO CLICAR FORA
+  // =====================================================
+  document.addEventListener("click", (e) => {
+    if (!inputBusca.contains(e.target)) {
+      dropdown.classList.add("hidden");
+    }
+  });
 });
