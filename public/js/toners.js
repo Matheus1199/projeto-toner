@@ -238,10 +238,10 @@ dropdown.id = "dropdown-toner";
           <table class="min-w-full border text-sm">
             <thead>
               <tr class="bg-gray-100">
-                <th class="p-2">Data</th>
-                <th class="p-2">${nomeCampo}</th>
+                <th class="p-2 text-center">Data</th>
+                <th class="p-2 text-center">${nomeCampo}</th>
                 <th class="p-2 text-center">Qtd</th>
-                <th class="p-2 text-right">Valor</th>
+                <th class="p-2 text-center">Valor</th>
               </tr>
             </thead>
             <tbody>
@@ -252,9 +252,9 @@ dropdown.id = "dropdown-toner";
                         (d) => `
                     <tr class="border-t">
                       <td class="p-2 text-center">${new Date(d[dataCampo]).toLocaleDateString()}</td>
-                      <td class="p-2">${d[nomeCampo]}</td>
+                      <td class="p-2 text-center">${d[nomeCampo]}</td>
                       <td class="p-2 text-center">${d.Quantidade}</td>
-                      <td class="p-2 text-right">R$ ${parseFloat(d[valorCampo]).toFixed(2)}</td>
+                      <td class="p-2 text-center">R$ ${parseFloat(d[valorCampo]).toFixed(2)}</td>
                     </tr>
                   `,
                       )
