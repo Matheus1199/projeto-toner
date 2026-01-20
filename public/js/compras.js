@@ -489,11 +489,11 @@ document.addEventListener("DOMContentLoaded", () => {
             (compras || []).forEach(c => {
                 const tr = document.createElement("tr");
                 tr.innerHTML = `
-                    <td class="py-2 px-3">${c.Cod_Compra}</td>
-                    <td class="py-2 px-3">${c.Data_Compra ? new Date(c.Data_Compra).toLocaleDateString() : ''}</td>
-                    <td class="py-2 px-3">${c.Nome_Fornecedor}</td>
-                    <td class="py-2 px-3">${formatBRL(parseFloat(c.Valor_Total || 0))}</td>
-                    <td class="py-2 px-3">${c.NDocumento || ''}</td>
+                    <td class="py-2 px-3 text-center">${c.Cod_Compra}</td>
+                    <td class="py-2 px-3 text-center">${c.Data_Compra ? new Date(c.Data_Compra).toLocaleDateString() : ''}</td>
+                    <td class="py-2 px-3 text-center">${c.Nome_Fornecedor}</td>
+                    <td class="py-2 px-3 text-center">${formatBRL(parseFloat(c.Valor_Total || 0))}</td>
+                    <td class="py-2 px-3 text-center">${c.NDocumento || ''}</td>
                 `;
                 tbody.appendChild(tr);
             });
@@ -502,10 +502,70 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
+    async function buscarCompra() {
+      const codCompra = document.getElementById("codCompra").value;
+      const tbody = document.getElementById("itensCompra");
+      const totalSpan = document.getElementById("totalCompraPesquisa");
+      const resultado = document.getElementById("resultadoCompra");
+
+      if (!codCompra) {
+        resultado.classList.add("hidden");
+        return alert("Informe o código da compra");
+      }
+
+      tbody.innerHTML = "";
+      totalSpan.textContent = "0,00";
+      resultado.classList.add("hidden");
+
+      try {
+        const res = await fetch(`/compras/${codCompra}`);
+        if (!res.ok) throw new Error("Compra não encontrada");
+
+        const data = await res.json();
+
+        data.itens.forEach((item) => {
+          const tr = document.createElement("tr");
+
+          tr.innerHTML = `
+        <td class="py-3 px-4 text-center">
+            ${data.compra.Cod_Compra}
+        </td>
+
+        <td class="py-3 px-4 text-center">
+            ${new Date(data.compra.Data_Compra).toLocaleDateString("pt-BR")}
+        </td>
+
+        <td class="py-3 px-4 text-center">
+            ${data.compra.Nome_Fornecedor || "-"}
+        </td>
+
+        <td class="py-3 px-4 text-center">
+            ${item.Marca} ${item.Modelo}
+        </td>
+
+        <td class="py-3 px-4 text-center">
+            ${item.Quantidade}
+        </td>
+
+        <td class="py-3 px-4 text-center">
+            R$ ${Number(item.Subtotal).toFixed(2)}
+        </td>
+    `;
+
+          tbody.appendChild(tr);
+        });
+
+        totalSpan.textContent = data.total.toFixed(2);
+        resultado.classList.remove("hidden");
+      } catch (err) {
+        resultado.classList.add("hidden");
+        alert(err.message);
+      }
+    }
+
+    window.buscarCompra = buscarCompra;
     // inicial
     listarCompras();
 
 }); // DOMContentLoaded end
 
-// Nota: removido o handler antigo btnSalvarLancamento (agora tudo vai via botão Salvar Compra)
-// Fim do arquivo

@@ -154,13 +154,13 @@ document.addEventListener("DOMContentLoaded", () => {
       (data || []).forEach((v) => {
         const tr = document.createElement("tr");
         tr.innerHTML = `
-                  <td class="py-2 px-3">${v.Cod_Pedido}</td>
-                  <td class="py-2 px-3">${
+                  <td class="py-2 px-3 text-center">${v.Cod_Pedido}</td>
+                  <td class="py-2 px-3 text-center">${
                     v.Data ? new Date(v.Data).toLocaleDateString() : ""
                   }</td>
-                  <td class="py-2 px-3">${v.Nome_Cliente || ""}</td>
-                  <td class="py-2 px-3">${fmtBRL(v.Valor_Total || 0)}</td>
-                  <td class="py-2 px-3">${v.NDoc || ""}</td>
+                  <td class="py-2 px-3 text-center">${v.Nome_Cliente || ""}</td>
+                  <td class="py-2 px-3 text-center">${fmtBRL(v.Valor_Total || 0)}</td>
+                  <td class="py-2 px-3 text-center">${v.NDoc || ""}</td>
                 `;
         tbody.appendChild(tr);
       });
@@ -203,12 +203,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
           tabelaPesquisa.innerHTML += `
                 <tr class="border-b">
-                    <td class="py-2 px-3">${item.Cod_Pedido}</td>
-                    <td class="py-2 px-3">${item.Data}</td>
-                    <td class="py-2 px-3">${item.Cliente}</td>
-                    <td class="py-2 px-3">${item.Modelo}</td>
-                    <td class="py-2 px-3">${item.Quantidade}</td>
-                    <td class="py-2 px-3">R$ ${subtotal.toFixed(2)}</td>
+                    <td class="py-2 px-3 text-center">${item.Cod_Pedido}</td>
+                    <td class="py-2 px-3 text-center">${item.Data}</td>
+                    <td class="py-2 px-3 text-center">${item.Cliente}</td>
+                    <td class="py-2 px-3 text-center">${item.Modelo}</td>
+                    <td class="py-2 px-3 text-center">${item.Quantidade}</td>
+                    <td class="py-2 px-3 text-center">R$ ${subtotal.toFixed(2)}</td>
                 </tr>`;
         });
 

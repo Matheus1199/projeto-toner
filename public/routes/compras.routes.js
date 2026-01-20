@@ -4,5 +4,6 @@ const comprasController = require("../controllers/comprasController");
 
 router.get("/listar", comprasController.listar);
 router.post("/finalizar", comprasController.finalizar);
+router.get("/:codCompra", comprasController.buscarPorCodigo);
 
 module.exports = router;

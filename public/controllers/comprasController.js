@@ -45,7 +45,7 @@ module.exports = {
 
     const totalItens = carrinho.reduce(
       (sum, item) => sum + item.valor_compra * item.quantidade,
-      0
+      0,
     );
 
     const totalFin = financeiro.reduce((sum, f) => sum + Number(f.valor), 0);
@@ -161,5 +161,70 @@ module.exports = {
       await transaction.rollback();
       res.status(500).json({ error: "Erro ao finalizar compra." });
     }
-  }
+  },
+
+  buscarPorCodigo: async (req, res) => {
+    const pool = req.app.get("db");
+    const sql = req.app.get("sql");
+
+    const { codCompra } = req.params;
+
+    try {
+      // =========================
+      // DADOS DA COMPRA
+      // =========================
+      const compraResult = await pool
+        .request()
+        .input("Cod_Compra", sql.Int, codCompra).query(`
+        SELECT 
+            C.Cod_Compra,
+            C.Data_Compra,
+            C.NDocumento,
+            C.Valor_Total,
+            C.Cond_Pagamento,
+            C.Obs,
+            F.Nome AS Nome_Fornecedor
+        FROM Tbl_Compras C
+        INNER JOIN Tbl_Fornecedores F ON F.Id_Fornecedor = C.Cod_Fornecedor
+        WHERE C.Cod_Compra = @Cod_Compra
+      `);
+
+      if (compraResult.recordset.length === 0) {
+        return res.status(404).json({ error: "Compra não encontrada." });
+      }
+
+      // =========================
+      // ITENS DA COMPRA
+      // =========================
+      const itensResult = await pool
+        .request()
+        .input("Cod_Compra", sql.Int, codCompra).query(`
+        SELECT 
+            CI.Id_ItemCompra,
+            T.Marca,
+            T.Modelo,
+            T.Tipo,
+            CI.Quantidade,
+            CI.Valor_Compra,
+            (CI.Quantidade * CI.Valor_Compra) AS Subtotal
+        FROM Tbl_ComprasItens CI
+        INNER JOIN Tbl_Toner T ON T.Cod_Produto = CI.Cod_Toner
+        WHERE CI.Cod_Compra = @Cod_Compra
+      `);
+
+      const totalCalculado = itensResult.recordset.reduce(
+        (sum, item) => sum + Number(item.Subtotal),
+        0,
+      );
+
+      res.json({
+        compra: compraResult.recordset[0],
+        itens: itensResult.recordset,
+        total: Number(totalCalculado.toFixed(2)),
+      });
+    } catch (error) {
+      console.error("Erro ao buscar compra:", error);
+      res.status(500).json({ error: "Erro ao buscar compra." });
+    }
+  },
 };

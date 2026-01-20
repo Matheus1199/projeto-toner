@@ -87,14 +87,28 @@
 <main class="flex-1 w-full p-4 md:p-6 md:ml-64 mt-16 md:mt-0">
 
     <!-- HEADER -->
-    <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
+    <div class="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-4 mb-6">
         <h1 class="text-2xl md:text-3xl font-bold text-gray-700">Compras</h1>
 
-        <button id="btnNovaCompra"
+        <div class="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
+            <input id="codCompra"
+                   type="text"
+                   class="p-3 border rounded-xl w-full sm:w-64"
+                   placeholder="Pesquisar pedido (código)..."
+                   onkeydown="if(event.key === 'Enter') buscarCompra()">
+
+            <button id="btnPesquisarCompra"
+                    onclick="buscarCompra()"
+                    class="flex items-center justify-center gap-2 bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-xl shadow-sm">
+                <i class='bx bx-search text-xl'></i> Pesquisar
+            </button>
+
+            <button id="btnNovaCompra"
                 class="flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700
                        text-white px-5 py-2 rounded-xl shadow-sm w-full sm:w-auto">
             <i class='bx bx-plus text-xl'></i> Nova Compra
-        </button>
+            </button>
+        </div>
     </div>
 
     <!-- LISTA DE COMPRAS -->
@@ -116,6 +130,49 @@
             </table>
         </div>
     </div>
+
+    <div id="resultadoCompra" class="bg-white p-4 md:p-6 rounded-2xl shadow-sm border mt-6 hidden">
+
+    <!-- TÍTULO -->
+    <h2 class="text-xl font-semibold text-gray-700 mb-3">Resultado da Pesquisa</h2>
+
+    <!-- TABELA -->
+    <div class="overflow-x-auto">
+        <table class="w-full border-collapse text-sm">
+            
+            <!-- CABEÇALHO -->
+             <div class="overflow-x-auto">
+                <thead class=>
+                    <tr class="border-b bg-gray-100">
+                        <th class="py-2 px-3">Código</th>
+                        <th class="py-2 px-3">Data</th>
+                        <th class="py-2 px-3">Fornecedor</th>
+                        <th class="py-2 px-3">Produto</th>
+                        <th class="py-2 px-3">Qtd</th>
+                        <th class="py-2 px-3">Subtotal</th>
+                    </tr>
+                </thead>
+            </div>
+            <!-- CORPO -->
+            <tbody id="itensCompra" class="divide-y"></tbody>
+
+            <!-- RODAPÉ -->
+            <tfoot class="bg-gray-50 font-semibold">
+                <tr>
+                    <td colspan="5" class="py-4 px-4 text-right">
+                        Total da Compra:
+                    </td>
+                    <td class="py-4 px-4 text-right text-green-600">
+                        R$ <span id="totalCompraPesquisa">0,00</span>
+                    </td>
+                </tr>
+            </tfoot>
+
+        </table>
+    </div>
+</div>
+
+
 
 </main>
 
