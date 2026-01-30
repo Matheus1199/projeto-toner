@@ -13,6 +13,28 @@
 
     <!-- Script global -->
     <script src="/js/global.js" defer></script>
+
+    <style>
+.filtro-btn {
+    padding: 6px 14px;
+    border-radius: 9999px;
+    font-size: 0.875rem;
+    border: 1px solid #e5e7eb;
+    background-color: #f9fafb;
+    color: #374151;
+    transition: all 0.2s ease;
+}
+
+.filtro-btn:hover {
+    background-color: #e5e7eb;
+}
+
+.filtro-btn.ativo {
+    background-color: #2563eb;
+    color: white;
+    border-color: #2563eb;
+}
+</style>
 </head>
 
 <body class="bg-gray-100 min-h-screen flex">
@@ -91,7 +113,7 @@
     </div>
 
     <!-- SALDO TOTAL -->
-    <div class="w-full bg-white shadow-md rounded-lg p-4 mt-4">
+    <div class="w-full bg-white shadow-md rounded-lg p-4 mt-8">
         <h2 class="text-lg font-semibold text-gray-700">
             Saldo Total das Contas
         </h2>
@@ -99,6 +121,39 @@
             R$ 0,00
         </p>
     </div>
+
+    <!-- ÚLTIMAS MOVIMENTAÇÕES -->
+<div class="bg-white shadow-md rounded-lg p-4 mt-8 mb-6">
+
+    <div class="flex justify-between items-center mb-4">
+        <h2 class="text-lg font-semibold text-gray-700">
+            Últimas movimentações
+        </h2>
+
+        <div class="flex items-center gap-2">
+            <button class="filtro-btn ativo" data-limit="10">10</button>
+            <button class="filtro-btn" data-limit="20">20</button>
+            <button class="filtro-btn" data-limit="30">30</button>
+        </div>
+    </div>
+
+    <div class="overflow-x-auto">
+        <table class="w-full min-w-[800px] text-sm">
+            <thead>
+                <tr class="bg-gray-200 text-left">
+                    <th class="p-2">Data</th>
+                    <th class="p-2">Conta</th>
+                    <th class="p-2">Tipo</th>
+                    <th class="p-2">Valor</th>
+                    <th class="p-2">Observação</th>
+                </tr>
+            </thead>
+            <tbody id="tabelaMovimentacoes"></tbody>
+        </table>
+    </div>
+
+</div>
+
 
 </main>
 

@@ -91,5 +91,34 @@ module.exports = {
         console.error("Erro ao somar saldos:", err);
         res.status(500).send("Erro ao somar saldos");
         }
+    },
+
+    listarMovimentacoes: async (req, res) => {
+    const pool = req.app.get("db");
+
+    // limite padrão = 10
+    const limit = parseInt(req.query.limit) || 10;
+
+    try {
+        const result = await pool.request()
+            .input("limit", limit)
+            .query(`
+                SELECT TOP (@limit)
+                    pr.Data_Baixa AS Data,
+                    c.Nome AS Conta,
+                    pr.Operacao,
+                    pr.Valor_Baixa AS Valor,
+                    pr.Obs
+                FROM Tbl_PagRec pr
+                INNER JOIN Tbl_Contas c ON c.Id_Conta = pr.Conta
+                WHERE pr.Baixa = 1
+                ORDER BY pr.Data_Baixa DESC
+            `);
+
+        res.json(result.recordset);
+    } catch (err) {
+        console.error("Erro ao listar movimentações:", err);
+        res.status(500).json({ erro: "Erro ao listar movimentações" });
     }
+}
 };
