@@ -205,30 +205,70 @@ dropdown.id = "dropdown-toner";
     montarResultadoDetalhado(data);
   }
 
-  function montarResultadoDetalhado(data) {
-    resultado.classList.remove("hidden");
+  async function montarResultadoDetalhado(data) {
+  resultado.classList.remove("hidden");
 
-    resultado.innerHTML = `
-      <div class="p-6 bg-white rounded-2xl shadow border space-y-6">
+  const clientes = await carregarClientesDoToner(data.toner.codProduto);
 
-        <div>
-          <h2 class="text-xl font-bold">${data.toner.modelo}</h2>
-          <p><strong>Marca:</strong> ${data.toner.marca}</p>
-          <p><strong>Tipo:</strong> ${data.toner.tipo}</p>
+  resultado.innerHTML = `
+    <div class="space-y-8">
 
-          <div class="mt-4 p-4 bg-blue-50 border-l-4 border-blue-600 rounded">
-            <p class="font-semibold text-blue-800">
-              Em estoque: ${data.toner.estoque} unidades
+      <!-- DADOS DO TONER -->
+      <div class="p-6 bg-white rounded-2xl shadow border">
+        <h2 class="text-xl font-bold">${data.toner.modelo}</h2>
+        <p><strong>Marca:</strong> ${data.toner.marca}</p>
+        <p><strong>Tipo:</strong> ${data.toner.tipo}</p>
+
+        <div class="mt-4 p-4 bg-blue-50 border-l-4 border-blue-600 rounded">
+          <p class="font-semibold text-blue-800">
+            Em estoque: ${data.toner.estoque} unidades
+          </p>
+        </div>
+      </div>
+
+      <!-- VENDAS -->
+      ${tabelaHistorico("Últimas 5 vendas", data.vendas, "Cliente", "Valor_Venda", "Data_Venda")}
+
+      <!-- COMPRAS -->
+      ${tabelaHistorico("Últimas 5 compras", data.compras, "Fornecedor", "Valor_Compra", "Data_Compra")}
+
+      <!-- CLIENTES -->
+      ${renderClientes(clientes)}
+
+    </div>
+  `;
+}
+
+function renderClientes(clientes) {
+  if (!clientes.length) return "";
+
+  return `
+    <div>
+      <h3 class="text-lg font-semibold mb-4">
+        Clientes que compram este toner
+      </h3>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+        ${clientes.map(c => `
+          <div class="bg-gray-50 border rounded-xl shadow-sm p-4 text-center">
+            <h4 class="font-semibold text-gray-800 truncate">
+              ${c.Cliente}
+            </h4>
+
+            <p class="text-blue-600 text-xl font-bold mt-2">
+              ${c.Total_Comprado}
+            </p>
+
+            <p class="text-xs text-gray-500">
+              toners comprados
             </p>
           </div>
-        </div>
-
-        ${tabelaHistorico("Últimas 5 vendas", data.vendas, "Cliente", "Valor_Venda", "Data_Venda")}
-        ${tabelaHistorico("Últimas 5 compras", data.compras, "Fornecedor", "Valor_Compra", "Data_Compra")}
-
+        `).join("")}
       </div>
-    `;
-  }
+    </div>
+  `;
+}
+
 
   function tabelaHistorico(titulo, dados, nomeCampo, valorCampo, dataCampo) {
     return `
@@ -330,6 +370,12 @@ dropdown.id = "dropdown-toner";
     if (tipo === "marca") return "bg-green-100";
     return "bg-purple-100";
   }
+
+  async function carregarClientesDoToner(codProduto) {
+  const res = await fetch(`/toners/${codProduto}/clientes`);
+  return await res.json();
+}
+
 
   // =====================================================
   // FECHAR DROPDOWN AO CLICAR FORA

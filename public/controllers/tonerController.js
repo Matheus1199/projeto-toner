@@ -183,6 +183,7 @@ module.exports = {
         return res.json({
           tipo: "modelo",
           toner: {
+            codProduto: toner.Cod_Produto,
             modelo: toner.Modelo,
             marca: toner.Marca,
             tipo: toner.Tipo,
@@ -321,4 +322,34 @@ module.exports = {
       res.status(500).json({ erro: "Erro ao buscar últimas compras" });
     }
   },
+
+  clientesPorToner: async (req, res) => {
+  const pool = req.app.get("db");
+  const sql = req.app.get("sql");
+
+  const { codProduto } = req.params;
+
+  try {
+    const result = await pool
+      .request()
+      .input("cod", sql.Int, codProduto)
+      .query(`
+        SELECT
+            C.Id_Cliente,
+            C.Nome AS Cliente,
+            SUM(I.Quantidade) AS Total_Comprado
+        FROM Tbl_PedidosItens I
+        JOIN Tbl_Pedidos P ON I.Cod_Pedido = P.Cod_Pedido
+        JOIN Tbl_Clientes C ON I.Cod_Cliente = C.Id_Cliente
+        WHERE I.Cod_Toner = @cod
+        GROUP BY C.Id_Cliente, C.Nome
+        ORDER BY Total_Comprado DESC
+      `);
+
+    res.json(result.recordset);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Erro ao buscar clientes do toner." });
+  }
+}
 };
