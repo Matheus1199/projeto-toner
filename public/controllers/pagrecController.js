@@ -50,6 +50,7 @@ ORDER BY PR.Data_Vencimento DESC;
                 PR.Id_Lancamento,
                 PR.Data_Vencimento AS Data,
                 PR.Valor,
+                PR.EAN,
                 Cmp.NDocumento AS Documento,
                 Cmp.Cond_Pagamento,
                 F.Nome AS Fornecedor

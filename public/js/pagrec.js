@@ -21,6 +21,8 @@ document.addEventListener("DOMContentLoaded", () => {
   const fieldValorBaixa = document.getElementById("fieldValorBaixa");
   const fieldDataBaixa = document.getElementById("fieldDataBaixa");
   const selectFilter = document.getElementById("pagrec-filter");
+  const fieldEAN = document.getElementById("fieldEAN");
+  const grupoEAN = document.getElementById("grupoEAN");
 
   // formatações
   const fmtValor = (v) => "R$ " + parseFloat(v || 0).toFixed(2);
@@ -197,6 +199,8 @@ document.addEventListener("DOMContentLoaded", () => {
   function fecharModal() {
     modalBg.classList.add("hidden");
     modalBg.classList.remove("flex");
+    grupoEAN.classList.add("hidden");
+    fieldEAN.value = "";
     formLanc.reset();
     fieldId.value = "";
   }
@@ -219,9 +223,19 @@ document.addEventListener("DOMContentLoaded", () => {
       if (!res.ok) throw new Error("Erro buscar");
       const rec = await res.json();
 
+      // EAN → somente A PAGAR
+      if (rec.Tipo === 1 && rec.Operacao === 1) {
+        grupoEAN.classList.remove("hidden");
+        fieldEAN.value = rec.EAN ?? "";
+      } else {
+        grupoEAN.classList.add("hidden");
+        fieldEAN.value = "";
+      }
+
       modalTitle.innerText = "Editar Lançamento";
       fieldId.value = rec.Id_Lancamento;
       fieldIdOperacao.value = rec.Id_Operacao ?? "";
+      fieldEAN.value = rec.EAN ?? "";
       fieldData.value = fmtDataISOtoInput(rec.Data_Vencimento ?? rec.Data);
       fieldValor.value = rec.Valor ?? "";
       fieldObs.value = rec.Obs ?? "";
