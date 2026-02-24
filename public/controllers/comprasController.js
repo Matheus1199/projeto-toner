@@ -37,10 +37,11 @@ module.exports = {
       carrinho,
       financeiro,
       semFinanceiro,
+      RMA,
     } = req.body;
 
     // =========================
-    // CÁLCULOS BÁSICOS (sempre)
+    // CÁLCULOS
     // =========================
 
     const totalItens = carrinho.reduce(
@@ -50,24 +51,31 @@ module.exports = {
 
     const totalFin = financeiro.reduce((sum, f) => sum + Number(f.valor), 0);
 
-    // =========================
-    // VALIDAÇÕES
-    // =========================
+    const valorRMA = parseFloat(RMA) || 0;
 
-    if (!carrinho || !carrinho.length)
-      return res.status(400).json({ error: "Adicione ao menos um item." });
+    if (!carrinho || !carrinho.length) {
+      return res.status(400).json({
+        error: "Adicione ao menos um item.",
+      });
+    }
 
-    // Só valida financeiro se NÃO for semFinanceiro
     if (!semFinanceiro) {
-      if (!financeiro || !financeiro.length)
+      if (!financeiro || !financeiro.length) {
         return res.status(400).json({
           error:
             "Você precisa lançar ao menos um título financeiro ou ativar 'Lançar sem Financeiro'.",
         });
+      }
 
-      if (Number(totalItens.toFixed(2)) !== Number(totalFin.toFixed(2))) {
+      const totalComparacao = totalFin + valorRMA;
+      
+
+      if (
+        Number(totalItens.toFixed(2)) !== Number(totalComparacao.toFixed(2))
+      ) {
         return res.status(400).json({
-          error: "O valor financeiro não confere com o valor total da compra.",
+          error:
+            "O valor financeiro + RMA não confere com o valor total da compra.",
         });
       }
     }

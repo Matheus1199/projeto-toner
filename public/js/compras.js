@@ -39,6 +39,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const btnAddParcela = document.getElementById("btnAddParcela");
     const tbodyFinanceiro = document.getElementById("tbodyFinanceiro");
     const totalFinanceiroEl = document.getElementById("totalFinanceiro");
+    const inputRMA = document.getElementById("inputRMA");
     const fieldSemFinanceiro = document.getElementById("fieldSemFinanceiro");
     const btnSalvarCompra = document.getElementById("btnSalvarCompra");
 
@@ -315,27 +316,32 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     function atualizarTabelaFinanceiro() {
-        tbodyFinanceiro.innerHTML = '';
-        let total = 0;
+      tbodyFinanceiro.innerHTML = "";
+      let totalParcelas = 0;
 
-        listaFinanceiro.forEach((f, idx) => {
-            const tr = document.createElement('tr');
-            tr.innerHTML = `
-                <td class="py-2 px-3">${f.vencimento}</td>
-                <td class="py-2 px-3">${Number(f.valor).toFixed(2)}</td>
-                <td class="py-2 px-3">${f.ean || ''}</td>
-                <td class="py-2 px-3">${f.obs || ''}</td>
-                <td class="py-2 px-3 text-center">
-                    <button data-idx="${idx}" class="btnRemoverParcela text-red-500 hover:text-red-700">
-                        <i class='bx bx-trash'></i>
-                    </button>
-                </td>
-            `;
-            tbodyFinanceiro.appendChild(tr);
-            total += Number(f.valor);
-        });
+      listaFinanceiro.forEach((f, idx) => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+            <td class="py-2 px-3">${f.vencimento}</td>
+            <td class="py-2 px-3">${Number(f.valor).toFixed(2)}</td>
+            <td class="py-2 px-3">${f.ean || ""}</td>
+            <td class="py-2 px-3">${f.obs || ""}</td>
+            <td class="py-2 px-3 text-center">
+                <button data-idx="${idx}" class="btnRemoverParcela text-red-500 hover:text-red-700">
+                    <i class='bx bx-trash'></i>
+                </button>
+            </td>
+        `;
+        tbodyFinanceiro.appendChild(tr);
+        totalParcelas += Number(f.valor);
+      });
 
-        totalFinanceiroEl.textContent = formatBRL(total);
+      const valorRMA = parseFloat(inputRMA?.value) || 0;
+
+      // 🔽 RMA AUMENTA O TOTAL VISUAL
+      const totalVisual = totalParcelas + valorRMA;
+
+      totalFinanceiroEl.textContent = formatBRL(totalVisual);
     }
 
     // remover parcela delegated
@@ -393,11 +399,11 @@ document.addEventListener("DOMContentLoaded", () => {
       // calcula totais
       const totalItens = carrinho.reduce(
         (acc, it) => acc + (Number(it.Subtotal) || 0),
-        0
+        0,
       );
       const totalFin = listaFinanceiro.reduce(
         (acc, f) => acc + (Number(f.valor) || 0),
-        0
+        0,
       );
 
       // Se o usuário marcar "Lançar sem Financeiro", ignoramos todas as regras financeiras
@@ -407,13 +413,7 @@ document.addEventListener("DOMContentLoaded", () => {
         // validações financeiras normais
         if (Number(totalFin.toFixed(2)) <= 0) {
           return alert(
-            'Você precisa lançar ao menos um título financeiro com valor maior que 0 ou marcar "Lançar sem Financeiro".'
-          );
-        }
-
-        if (Number(totalItens.toFixed(2)) !== Number(totalFin.toFixed(2))) {
-          return alert(
-            "O total financeiro não confere com o valor total da compra. Verifique os valores."
+            'Você precisa lançar ao menos um título financeiro com valor maior que 0 ou marcar "Lançar sem Financeiro".',
           );
         }
       }
@@ -425,6 +425,7 @@ document.addEventListener("DOMContentLoaded", () => {
         Cond_Pagamento,
         Obs,
         semFinanceiro, // envia ao backend esta flag
+        RMA: parseFloat(inputRMA?.value) || 0,
         carrinho: carrinho.map((it) => ({
           cod_toner: it.Cod_Produto,
           quantidade: it.Quantidade,
@@ -461,7 +462,7 @@ document.addEventListener("DOMContentLoaded", () => {
         compraRecemCriada = json; // pode conter Cod_Compra
         alert(
           "Compra registrada com sucesso! Cod_Compra: " +
-            (json.Cod_Compra || "—")
+            (json.Cod_Compra || "—"),
         );
         limparEstado();
         modalBg.classList.add("hidden");
@@ -566,6 +567,11 @@ document.addEventListener("DOMContentLoaded", () => {
     window.buscarCompra = buscarCompra;
     // inicial
     listarCompras();
+
+    inputRMA &&
+      inputRMA.addEventListener("input", () => {
+        atualizarTabelaFinanceiro();
+      });
 
 }); // DOMContentLoaded end
 
