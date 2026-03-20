@@ -282,4 +282,102 @@ module.exports = {
       res.status(500).json({ error: "Erro ao atualizar cliente." });
     }
   },
+
+  // ===========================================
+  // CANCELAR VENDA
+  // ===========================================
+  cancelar: async (req, res) => {
+    const pool = req.app.get("db");
+    const sql = req.app.get("sql");
+
+    const codPedido = req.params.codPedido;
+
+    if (!codPedido)
+      return res.status(400).json({ error: "Pedido não informado." });
+
+    const transaction = new sql.Transaction(pool);
+
+    try {
+      await transaction.begin();
+
+      // =====================================
+      // 1) VERIFICAR SE JÁ TEM BAIXA
+      // =====================================
+      const baixaCheck = await transaction
+        .request()
+        .input("Cod_Pedido", sql.Int, codPedido).query(`
+                SELECT TOP 1 1
+                FROM Tbl_PagRec
+                WHERE Id_Operacao = @Cod_Pedido
+                  AND Baixa = 1
+            `);
+
+      if (baixaCheck.recordset.length > 0) {
+        await transaction.rollback();
+        return res.status(400).json({
+          error: "Não é possível cancelar. Já existe baixa financeira.",
+        });
+      }
+
+      // =====================================
+      // 2) BUSCAR ITENS PARA DEVOLVER ESTOQUE
+      // =====================================
+      const itens = await transaction
+        .request()
+        .input("Cod_Pedido", sql.Int, codPedido).query(`
+                SELECT Id_ItemCompra, Quantidade
+                FROM Tbl_PedidosItens
+                WHERE Cod_Pedido = @Cod_Pedido
+            `);
+
+      // =====================================
+      // 3) DEVOLVER ESTOQUE
+      // =====================================
+      for (const item of itens.recordset) {
+        await transaction
+          .request()
+          .input("Id_ItemCompra", sql.Int, item.Id_ItemCompra)
+          .input("Quantidade", sql.Int, item.Quantidade).query(`
+                    UPDATE Tbl_ComprasItens
+                    SET Saldo = Saldo + @Quantidade
+                    WHERE Id_ItemCompra = @Id_ItemCompra
+                `);
+      }
+
+      // =====================================
+      // 4) EXCLUIR FINANCEIRO
+      // =====================================
+      await transaction.request().input("Cod_Pedido", sql.Int, codPedido)
+        .query(`
+                DELETE FROM Tbl_PagRec
+                WHERE Id_Operacao = @Cod_Pedido
+            `);
+
+      // =====================================
+      // 5) EXCLUIR ITENS
+      // =====================================
+      await transaction.request().input("Cod_Pedido", sql.Int, codPedido)
+        .query(`
+                DELETE FROM Tbl_PedidosItens
+                WHERE Cod_Pedido = @Cod_Pedido
+            `);
+
+      // =====================================
+      // 6) EXCLUIR PEDIDO
+      // =====================================
+      await transaction.request().input("Cod_Pedido", sql.Int, codPedido)
+        .query(`
+                DELETE FROM Tbl_Pedidos
+                WHERE Cod_Pedido = @Cod_Pedido
+            `);
+
+      await transaction.commit();
+
+      res.json({ message: "Pedido cancelado com sucesso." });
+    } catch (err) {
+      await transaction.rollback();
+      console.error(err);
+      res.status(500).json({ error: "Erro ao cancelar pedido." });
+    }
+  },
 };

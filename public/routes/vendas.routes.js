@@ -6,5 +6,6 @@ router.get("/listar", vendasController.listar);
 router.get("/pesquisar/:codigo", vendasController.pesquisar);
 router.post("/finalizar", vendasController.finalizar);
 router.put("/alterar-cliente/:codPedido", vendasController.alterarCliente);
+router.delete("/cancelar/:codPedido", vendasController.cancelar);
 
 module.exports = router;

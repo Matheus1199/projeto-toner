@@ -224,6 +224,35 @@ document.addEventListener("DOMContentLoaded", () => {
     )
   );
 
+  document.addEventListener("click", async (e) => {
+    const btn = e.target.closest(".btnCancelarPedido");
+    if (!btn) return;
+
+    const codPedido = btn.dataset.id;
+
+    if (!confirm(`Deseja realmente cancelar o pedido ${codPedido}?`)) return;
+
+    try {
+      const resp = await fetch(`/vendas/cancelar/${codPedido}`, {
+        method: "DELETE",
+      });
+
+      const json = await resp.json();
+
+      if (!resp.ok) return alert(json.error);
+
+      alert("Pedido cancelado com sucesso!");
+
+      listarVendas();
+
+      // opcional: limpar pesquisa
+      document.getElementById("resultadoPesquisa")?.classList.add("hidden");
+    } catch (err) {
+      console.error(err);
+      alert("Erro ao cancelar pedido");
+    }
+  });
+
   // ====== LISTAR VENDAS (últimas 10) ======
   async function listarVendas() {
     try {
@@ -235,9 +264,14 @@ document.addEventListener("DOMContentLoaded", () => {
       (data || []).forEach((v) => {
         const tr = document.createElement("tr");
         tr.innerHTML = `
-                  <td class="py-2 px-3 text-center text-blue-600 cursor-pointer hover:underline btnEditarPedido" data-id="${v.Cod_Pedido}">
-    ${v.Cod_Pedido}
-</td>
+                  <td class="py-2 px-3 text-center flex gap-2 justify-center">
+                    <span class="text-blue-600 cursor-pointer hover:underline btnEditarPedido" data-id="${v.Cod_Pedido}">
+                        ${v.Cod_Pedido}
+                    </span>
+                    <button class="text-red-500 hover:text-red-700 btnCancelarPedido" data-id="${v.Cod_Pedido}">
+                        <i class='bx bx-x'></i>
+                    </button>
+                  </td>
                   <td class="py-2 px-3 text-center">${
                     v.Data ? new Date(v.Data).toLocaleDateString() : ""
                   }</td>
@@ -286,9 +320,14 @@ document.addEventListener("DOMContentLoaded", () => {
 
           tabelaPesquisa.innerHTML += `
                 <tr class="border-b">
-                    <td class="py-2 px-3 text-center text-blue-600 cursor-pointer hover:underline btnEditarPedido" data-id="${item.Cod_Pedido}">
-    ${item.Cod_Pedido}
-</td>
+                    <td class="py-2 px-3 text-center flex gap-2 justify-center">
+                      <span class="text-blue-600 cursor-pointer hover:underline btnEditarPedido" data-id="${item.Cod_Pedido}">
+                          ${item.Cod_Pedido}
+                      </span>
+                      <button class="text-red-500 hover:text-red-700 btnCancelarPedido" data-id="${item.Cod_Pedido}">
+                          <i class='bx bx-x'></i>
+                      </button>
+                  </td>
                     <td class="py-2 px-3 text-center">${item.Data}</td>
                     <td class="py-2 px-3 text-center">${item.Cliente}</td>
                     <td class="py-2 px-3 text-center">${item.Modelo}</td>
