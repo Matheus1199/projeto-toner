@@ -25,44 +25,47 @@ module.exports = {
 
     lancar: async (req, res) => {
         const pool = req.app.get("db");
-        const { conta, valor, operacao, obs } = req.body;
+        const { conta, valor, tipo, obs } = req.body;
 
-        if (!conta || !valor || !operacao)
-            return res.status(400).json({ error: "Dados incompletos para lançar operação." });
+        if (!conta || !valor || !tipo)
+          return res.status(400).json({ error: "Dados incompletos." });
+
+        if (![1, 2].includes(Number(tipo)))
+          return res.status(400).json({ error: "Tipo inválido." });
 
         try {
-            // Converte para número
-            const valorNum = parseFloat(valor);
+          // Converte para número
+          const valorNum = parseFloat(valor);
 
-            // 🔵 1) Inserir lançamento em Tbl_PagRec
-            const insertPagRec = await pool.request()
-                .input("Tipo", 3) // 3 = Lançamento manual (definido por nós)
-                .input("Operacao", operacao) // 1 = Crédito | 2 = Débito
-                .input("Id_Operacao", null)
-                .input("Data_Vencimento", new Date())
-                .input("Valor", valorNum)
-                .input("EAN", "")
-                .input("Conta", conta)
-                .input("Valor_Baixa", valorNum)
-                .input("Data_Baixa", new Date())
-                .input("Obs", obs || "")
-                .input("Baixa", 1)
-                .query(`
+          // 🔵 1) Inserir lançamento em Tbl_PagRec
+          const insertPagRec = await pool
+            .request()
+            .input("Tipo", Number(tipo)) // débito/crédito
+            .input("Operacao", 4) // 4 = lançamento manual
+            .input("Id_Operacao", null)
+            .input("Data_Vencimento", new Date())
+            .input("Valor", valorNum)
+            .input("EAN", "")
+            .input("Conta", conta)
+            .input("Valor_Baixa", valorNum)
+            .input("Data_Baixa", new Date())
+            .input("Obs", obs || "")
+            .input("Baixa", 1).query(`
                     INSERT INTO Tbl_PagRec 
                     (Tipo, Operacao, Id_Operacao, Data_Vencimento, Valor, EAN, Conta, Valor_Baixa, Data_Baixa, Obs, Baixa)
                     OUTPUT INSERTED.Id_Lancamento
                     VALUES (@Tipo, @Operacao, @Id_Operacao, @Data_Vencimento, @Valor, @EAN, @Conta, @Valor_Baixa, @Data_Baixa, @Obs, @Baixa)
                 `);
 
-            const novoLancamentoId = insertPagRec.recordset[0].Id_Lancamento;
+          const novoLancamentoId = insertPagRec.recordset[0].Id_Lancamento;
 
-            // 🔵 2) Atualizar saldo da conta
-            const operacaoMath = operacao == 1 ? "+" : "-"; // 1=Crédito | 2=Débito
+          // 🔵 2) Atualizar saldo da conta
+          const operacaoMath = tipo == 2 ? "+" : "-";
+          // 2 = crédito (+)
+          // 1 = débito (-)
 
-            await pool.request()
-                .input("Conta", conta)
-                .input("Valor", valorNum)
-                .query(`
+          await pool.request().input("Conta", conta).input("Valor", valorNum)
+            .query(`
                     UPDATE Tbl_Contas
                     SET Saldo = Saldo ${operacaoMath} @Valor,
                         Dt_Atualizacao = GETDATE(),
@@ -70,8 +73,7 @@ module.exports = {
                     WHERE Id_Conta = @Conta
                 `);
 
-            return res.json({ message: "Lançamento registrado com sucesso!" });
-
+          return res.json({ message: "Lançamento registrado com sucesso!" });
         } catch (err) {
             console.error("Erro ao lançar operação manual:", err);
             return res.status(500).json({ error: "Erro ao lançar operação manual." });

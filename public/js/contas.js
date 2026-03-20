@@ -8,12 +8,12 @@ async function carregarContas() {
             data.forEach(c => {
                 tbody.innerHTML += `
                     <tr class="border-b">
-                        <td class="p-2">${c.Id_Conta}</td>
-                        <td class="p-2">${c.Nome}</td>
-                        <td class="p-2">R$ ${c.Saldo.toFixed(2)}</td>
-                        <td class="p-2">${c.Empresa}</td>
-                        <td class="p-2">${c.Ativo ? "Sim" : "Não"}</td>
-                        <td class="p-2">${new Date(c.Dt_Atualizacao).toLocaleDateString("pt-BR")}</td>
+                        <td class="p-2 text-center">${c.Id_Conta}</td>
+                        <td class="p-2 text-center">${c.Nome}</td>
+                        <td class="p-2 text-center">R$ ${c.Saldo.toFixed(2)}</td>
+                        <td class="p-2 text-center">${c.Empresa}</td>
+                        <td class="p-2 text-center">${c.Ativo ? "Sim" : "Não"}</td>
+                        <td class="p-2 text-center">${new Date(c.Dt_Atualizacao).toLocaleDateString("pt-BR")}</td>
                     </tr>
                 `;
             });
@@ -45,10 +45,10 @@ async function carregarContas() {
             e.preventDefault();
 
             const body = {
-                conta: document.getElementById("conta").value,
-                valor: document.getElementById("valor").value,
-                operacao: document.getElementById("operacao").value,
-                obs: document.getElementById("obs").value
+              conta: document.getElementById("conta").value,
+              valor: document.getElementById("valor").value,
+              tipo: document.getElementById("tipo").value,
+              obs: document.getElementById("obs").value,
             };
 
             const res = await fetch("/contas/lancar", {
