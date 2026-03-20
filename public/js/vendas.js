@@ -93,6 +93,87 @@ document.addEventListener("DOMContentLoaded", () => {
     limparEstado();
   };
 
+  let pedidoSelecionado = null;
+
+  // CLICK NO CÓDIGO
+  document.addEventListener("click", (e) => {
+    const btn = e.target.closest(".btnEditarPedido");
+    if (!btn) return;
+
+    pedidoSelecionado = btn.dataset.id;
+    document.getElementById("modalEditarCliente").classList.remove("hidden");
+  });
+
+  const editarInput = document.getElementById("editarClienteInput");
+  const editarResultado = document.getElementById("editarClienteResultado");
+  const editarHidden = document.getElementById("editarClienteId");
+
+  let debounceEdit;
+
+  editarInput.addEventListener("input", () => {
+    clearTimeout(debounceEdit);
+
+    debounceEdit = setTimeout(async () => {
+      const termo = editarInput.value.trim();
+
+      if (termo.length < 2) {
+        editarResultado.classList.add("hidden");
+        return;
+      }
+
+      const resp = await fetch(`/clientes/pesquisar?nome=${termo}`);
+      const lista = await resp.json();
+
+      editarResultado.innerHTML = "";
+      editarResultado.classList.remove("hidden");
+
+      lista.forEach((cli) => {
+        const div = document.createElement("div");
+        div.className = "p-2 hover:bg-gray-100 cursor-pointer";
+        div.textContent = cli.Nome;
+
+        div.onclick = () => {
+          editarInput.value = cli.Nome;
+          editarHidden.value = cli.Id_Cliente;
+          editarResultado.classList.add("hidden");
+        };
+
+        editarResultado.appendChild(div);
+      });
+    }, 300);
+  });
+
+  document
+    .getElementById("btnSalvarCliente")
+    .addEventListener("click", async () => {
+      const Cod_Cliente = editarHidden.value;
+
+      if (!Cod_Cliente) return alert("Selecione um cliente");
+
+      try {
+        const resp = await fetch(
+          `/vendas/alterar-cliente/${pedidoSelecionado}`,
+          {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ Cod_Cliente }),
+          },
+        );
+
+        const json = await resp.json();
+
+        if (!resp.ok) return alert(json.error);
+
+        alert("Cliente atualizado!");
+        document.getElementById("modalEditarCliente").classList.add("hidden");
+
+        listarVendas(); // atualiza tabela
+      } catch (e) {
+        console.error(e);
+        alert("Erro ao atualizar");
+      }
+    });
+
   function limparEstado() {
     carrinho = [];
     listaFinanceiro = [];
@@ -154,7 +235,9 @@ document.addEventListener("DOMContentLoaded", () => {
       (data || []).forEach((v) => {
         const tr = document.createElement("tr");
         tr.innerHTML = `
-                  <td class="py-2 px-3 text-center">${v.Cod_Pedido}</td>
+                  <td class="py-2 px-3 text-center text-blue-600 cursor-pointer hover:underline btnEditarPedido" data-id="${v.Cod_Pedido}">
+    ${v.Cod_Pedido}
+</td>
                   <td class="py-2 px-3 text-center">${
                     v.Data ? new Date(v.Data).toLocaleDateString() : ""
                   }</td>
@@ -203,7 +286,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
           tabelaPesquisa.innerHTML += `
                 <tr class="border-b">
-                    <td class="py-2 px-3 text-center">${item.Cod_Pedido}</td>
+                    <td class="py-2 px-3 text-center text-blue-600 cursor-pointer hover:underline btnEditarPedido" data-id="${item.Cod_Pedido}">
+    ${item.Cod_Pedido}
+</td>
                     <td class="py-2 px-3 text-center">${item.Data}</td>
                     <td class="py-2 px-3 text-center">${item.Cliente}</td>
                     <td class="py-2 px-3 text-center">${item.Modelo}</td>

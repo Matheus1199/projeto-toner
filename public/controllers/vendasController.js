@@ -1,13 +1,12 @@
 module.exports = {
+  // ===========================================
+  //  LISTAR ÚLTIMAS 10 VENDAS
+  // ===========================================
+  listar: async (req, res) => {
+    const pool = req.app.get("db");
 
-    // ===========================================
-    //  LISTAR ÚLTIMAS 10 VENDAS
-    // ===========================================
-    listar: async (req, res) => {
-        const pool = req.app.get("db");
-
-        try {
-            const result = await pool.request().query(`
+    try {
+      const result = await pool.request().query(`
                 SELECT TOP 10 
                     P.Cod_Pedido,
                     P.Data,
@@ -20,28 +19,25 @@ module.exports = {
                 ORDER BY P.Cod_Pedido DESC
             `);
 
-            res.json(result.recordset);
+      res.json(result.recordset);
+    } catch (err) {
+      console.error("Erro ao buscar vendas:", err);
+      res.status(500).json({ error: "Erro ao buscar vendas." });
+    }
+  },
 
-        } catch (err) {
-            console.error("Erro ao buscar vendas:", err);
-            res.status(500).json({ error: "Erro ao buscar vendas." });
-        }
-    },
+  // ===========================================
+  //  PESQUISAR PEDIDO POR CÓDIGO
+  // ===========================================
+  pesquisar: async (req, res) => {
+    const pool = req.app.get("db");
+    const codigo = req.params.codigo;
 
-    // ===========================================
-    //  PESQUISAR PEDIDO POR CÓDIGO
-    // ===========================================
-    pesquisar: async (req, res) => {
-        const pool = req.app.get("db");
-        const codigo = req.params.codigo;
+    if (!codigo)
+      return res.status(400).json({ error: "Código do pedido não informado." });
 
-        if (!codigo)
-            return res.status(400).json({ error: "Código do pedido não informado." });
-
-        try {
-            const result = await pool.request()
-                .input("codigo", codigo)
-                .query(`
+    try {
+      const result = await pool.request().input("codigo", codigo).query(`
                     SELECT
                         P.Cod_Pedido,
                         FORMAT(P.Data, 'dd/MM/yyyy') AS Data,
@@ -60,175 +56,230 @@ module.exports = {
                     ORDER BY T.Modelo
                 `);
 
-            res.json(result.recordset);
+      res.json(result.recordset);
+    } catch (err) {
+      console.error("Erro ao pesquisar pedido:", err);
+      res.status(500).json({ error: "Erro ao pesquisar pedido." });
+    }
+  },
 
-        } catch (err) {
-            console.error("Erro ao pesquisar pedido:", err);
-            res.status(500).json({ error: "Erro ao pesquisar pedido." });
-        }
-    },
+  // ===========================================
+  //  FINALIZAR VENDA (COM FRETE)
+  // ===========================================
+  finalizar: async (req, res) => {
+    const pool = req.app.get("db");
+    const sql = req.app.get("sql");
 
-    // ===========================================
-    //  FINALIZAR VENDA (COM FRETE)
-    // ===========================================
-    finalizar: async (req, res) => {
-        const pool = req.app.get("db");
-        const sql = req.app.get("sql");
+    const {
+      Cod_Cliente,
+      NDoc,
+      Cond_Pagamento,
+      Obs,
+      itens,
+      financeiro,
+      Valor_Frete,
+    } = req.body;
 
-        const { Cod_Cliente, NDoc, Cond_Pagamento, Obs, itens, financeiro, Valor_Frete } = req.body;
+    const frete = Number(Valor_Frete || 0);
 
-        const frete = Number(Valor_Frete || 0);
+    if (!itens || itens.length === 0)
+      return res.status(400).json({ error: "Nenhum item informado." });
 
-        if (!itens || itens.length === 0)
-            return res.status(400).json({ error: "Nenhum item informado." });
+    if (!financeiro || financeiro.length === 0)
+      return res
+        .status(400)
+        .json({ error: "Nenhum lançamento financeiro informado." });
 
-        if (!financeiro || financeiro.length === 0)
-            return res.status(400).json({ error: "Nenhum lançamento financeiro informado." });
+    // === total dos itens ===
+    const totalItens = itens.reduce(
+      (s, it) => s + Number(it.valor_venda) * Number(it.quantidade),
+      0,
+    );
 
-        // === total dos itens ===
-        const totalItens = itens.reduce(
-            (s, it) => s + (Number(it.valor_venda) * Number(it.quantidade)), 0
-        );
+    // === total financeiro ===
+    const totalFinanceiro = financeiro.reduce((s, f) => s + Number(f.valor), 0);
 
-        // === total financeiro ===
-        const totalFinanceiro = financeiro.reduce(
-            (s, f) => s + Number(f.valor), 0
-        );
+    // === total final pedido = itens + frete ===
+    const totalVenda = Number((totalItens + frete).toFixed(2));
 
-        // === total final pedido = itens + frete ===
-        const totalVenda = Number((totalItens + frete).toFixed(2));
+    if (Number(totalFinanceiro.toFixed(2)) !== Number(totalVenda.toFixed(2))) {
+      return res.status(400).json({
+        error: "O total financeiro deve fechar com TOTAL + FRETE.",
+      });
+    }
 
-        if (Number(totalFinanceiro.toFixed(2)) !== Number(totalVenda.toFixed(2))) {
-            return res.status(400).json({
-                error: "O total financeiro deve fechar com TOTAL + FRETE."
-            });
-        }
+    const transaction = new sql.Transaction(pool);
+    const NF = req.body.NF ? 1 : 0;
 
-        const transaction = new sql.Transaction(pool);
-        const NF = req.body.NF ? 1 : 0;
+    try {
+      await transaction.begin();
 
-        try {
-            await transaction.begin();
-
-            // =====================================
-            // 1) Inserir pedido (agora com campo Valor_Frete)
-            // =====================================
-            const pedidoResult = await transaction.request()
-                .input("Data", sql.DateTime, new Date())
-                .input("Cod_Cliente", sql.Int, Cod_Cliente)
-                .input("Valor_Total", sql.Decimal(18, 2), totalVenda)
-                .input("Valor_Frete", sql.Decimal(18, 2), frete)
-                .input("Custo_Total", sql.Decimal(18, 2), 0)
-                .input("Lucro_Total", sql.Decimal(18, 2), 0)
-                .input("NDoc", sql.VarChar(50), NDoc || '')
-                .input("Cond_Pagamento", sql.VarChar(50), Cond_Pagamento || '')
-                .input("Obs", sql.VarChar(255), Obs || '')
-                .input("NF", sql.Bit, NF)
-                .query(`
+      // =====================================
+      // 1) Inserir pedido (agora com campo Valor_Frete)
+      // =====================================
+      const pedidoResult = await transaction
+        .request()
+        .input("Data", sql.DateTime, new Date())
+        .input("Cod_Cliente", sql.Int, Cod_Cliente)
+        .input("Valor_Total", sql.Decimal(18, 2), totalVenda)
+        .input("Valor_Frete", sql.Decimal(18, 2), frete)
+        .input("Custo_Total", sql.Decimal(18, 2), 0)
+        .input("Lucro_Total", sql.Decimal(18, 2), 0)
+        .input("NDoc", sql.VarChar(50), NDoc || "")
+        .input("Cond_Pagamento", sql.VarChar(50), Cond_Pagamento || "")
+        .input("Obs", sql.VarChar(255), Obs || "")
+        .input("NF", sql.Bit, NF).query(`
                     INSERT INTO Tbl_Pedidos
                     (Data, Cod_Cliente, Valor_Total, Valor_Frete, Custo_Total, Lucro_Total, NDoc, Cond_Pagamento, Obs, NF)
                     OUTPUT INSERTED.Cod_Pedido
                     VALUES (@Data, @Cod_Cliente, @Valor_Total, @Valor_Frete, @Custo_Total, @Lucro_Total, @NDoc, @Cond_Pagamento, @Obs, @NF)
                 `);
 
-            const Cod_Pedido = pedidoResult.recordset[0].Cod_Pedido;
+      const Cod_Pedido = pedidoResult.recordset[0].Cod_Pedido;
 
-            let totalCusto = 0;
-            let totalLucro = 0;
+      let totalCusto = 0;
+      let totalLucro = 0;
 
-            // =====================================
-            // 2) Inserir itens + atualizar estoque
-            // =====================================
-            for (const it of itens) {
-                const valorCompra = Number(it.valor_compra);
-                const valorVenda = Number(it.valor_venda);
-                const quantidade = Number(it.quantidade);
-                const valorLucro = (valorVenda - valorCompra) * quantidade;
+      // =====================================
+      // 2) Inserir itens + atualizar estoque
+      // =====================================
+      for (const it of itens) {
+        const valorCompra = Number(it.valor_compra);
+        const valorVenda = Number(it.valor_venda);
+        const quantidade = Number(it.quantidade);
+        const valorLucro = (valorVenda - valorCompra) * quantidade;
 
-                await transaction.request()
-                    .input("Cod_Pedido", sql.Int, Cod_Pedido)
-                    .input("Cod_Cliente", sql.Int, Cod_Cliente)
-                    .input("Cod_Toner", sql.Int, it.cod_toner)
-                    .input("Id_ItemCompra", sql.Int, it.id_itemcompra)
-                    .input("Quantidade", sql.Int, quantidade)
-                    .input("Valor_Compra", sql.Decimal(18, 2), valorCompra)
-                    .input("Valor_Venda", sql.Decimal(18, 2), valorVenda)
-                    .input("Valor_Lucro", sql.Decimal(18, 2), valorLucro)
-                    .query(`
+        await transaction
+          .request()
+          .input("Cod_Pedido", sql.Int, Cod_Pedido)
+          .input("Cod_Cliente", sql.Int, Cod_Cliente)
+          .input("Cod_Toner", sql.Int, it.cod_toner)
+          .input("Id_ItemCompra", sql.Int, it.id_itemcompra)
+          .input("Quantidade", sql.Int, quantidade)
+          .input("Valor_Compra", sql.Decimal(18, 2), valorCompra)
+          .input("Valor_Venda", sql.Decimal(18, 2), valorVenda)
+          .input("Valor_Lucro", sql.Decimal(18, 2), valorLucro).query(`
                         INSERT INTO Tbl_PedidosItens
                         (Cod_Pedido, Cod_Cliente, Cod_Toner, Id_ItemCompra, Quantidade, Valor_Compra, Valor_Venda, Valor_Lucro)
                         VALUES
                         (@Cod_Pedido, @Cod_Cliente, @Cod_Toner, @Id_ItemCompra, @Quantidade, @Valor_Compra, @Valor_Venda, @Valor_Lucro)
                     `);
 
-                await transaction.request()
-                    .input("Id_ItemCompra", sql.Int, it.id_itemcompra)
-                    .input("Quantidade", sql.Int, quantidade)
-                    .query(`
+        await transaction
+          .request()
+          .input("Id_ItemCompra", sql.Int, it.id_itemcompra)
+          .input("Quantidade", sql.Int, quantidade).query(`
                         UPDATE Tbl_ComprasItens
                         SET Saldo = Saldo - @Quantidade
                         WHERE Id_ItemCompra = @Id_ItemCompra
                     `);
 
-                totalCusto += valorCompra * quantidade;
-                totalLucro += valorLucro;
-            }
+        totalCusto += valorCompra * quantidade;
+        totalLucro += valorLucro;
+      }
 
-            // =====================================
-            // 3) Atualizar custos/lucro
-            // =====================================
-            await transaction.request()
-                .input("Cod_Pedido", sql.Int, Cod_Pedido)
-                .input("Custo_Total", sql.Decimal(18, 2), totalCusto)
-                .input("Lucro_Total", sql.Decimal(18, 2), totalLucro)
-                .query(`
+      // =====================================
+      // 3) Atualizar custos/lucro
+      // =====================================
+      await transaction
+        .request()
+        .input("Cod_Pedido", sql.Int, Cod_Pedido)
+        .input("Custo_Total", sql.Decimal(18, 2), totalCusto)
+        .input("Lucro_Total", sql.Decimal(18, 2), totalLucro).query(`
                     UPDATE Tbl_Pedidos
                     SET Custo_Total = @Custo_Total,
                         Lucro_Total = @Lucro_Total
                     WHERE Cod_Pedido = @Cod_Pedido
                 `);
 
-            // =====================================
-            // 4) Lançamentos financeiros (a receber)
-            // =====================================
-            for (const fin of financeiro) {
-                await transaction.request()
-                    .input("Tipo", sql.Int, fin.tipo)
-                    .input("Operacao", sql.Int, fin.operacao)
-                    .input("Id_Operacao", sql.Int, Cod_Pedido)
-                    .input("Data_Vencimento", sql.DateTime, new Date(fin.vencimento))
-                    .input("Valor", sql.Decimal(18, 2), fin.valor)
-                    .input("EAN", sql.VarChar(100), fin.ean || null)
-                    .input("Conta", sql.Int, fin.conta || null)
-                    .input("Valor_Baixa", sql.Decimal(18, 2), null)
-                    .input("Data_Baixa", sql.DateTime, null)
-                    .input("Obs", sql.VarChar(255), fin.obs || null)
-                    .input("Baixa", sql.Bit, 0)
-                    .query(`
+      // =====================================
+      // 4) Lançamentos financeiros (a receber)
+      // =====================================
+      for (const fin of financeiro) {
+        await transaction
+          .request()
+          .input("Tipo", sql.Int, fin.tipo)
+          .input("Operacao", sql.Int, fin.operacao)
+          .input("Id_Operacao", sql.Int, Cod_Pedido)
+          .input("Data_Vencimento", sql.DateTime, new Date(fin.vencimento))
+          .input("Valor", sql.Decimal(18, 2), fin.valor)
+          .input("EAN", sql.VarChar(100), fin.ean || null)
+          .input("Conta", sql.Int, fin.conta || null)
+          .input("Valor_Baixa", sql.Decimal(18, 2), null)
+          .input("Data_Baixa", sql.DateTime, null)
+          .input("Obs", sql.VarChar(255), fin.obs || null)
+          .input("Baixa", sql.Bit, 0).query(`
                         INSERT INTO Tbl_PagRec
                         (Tipo, Operacao, Id_Operacao, Data_Vencimento, Valor, EAN, Conta, Valor_Baixa, Data_Baixa, Obs, Baixa)
                         VALUES
                         (@Tipo, @Operacao, @Id_Operacao, @Data_Vencimento, @Valor, @EAN, @Conta, @Valor_Baixa, @Data_Baixa, @Obs, @Baixa)
                     `);
-            }
+      }
 
-            await transaction.commit();
+      await transaction.commit();
 
-            res.json({
-                Cod_Pedido,
-                Valor_Total: totalVenda,
-                Valor_Frete: frete,
-                Custo_Total: totalCusto,
-                Lucro_Total: totalLucro,
-                message: "Venda registrada com sucesso!"
-            });
-
-        } catch (err) {
-            console.error("Erro ao finalizar venda:", err);
-            await transaction.rollback();
-            res.status(500).json({
-                error: err.message || "Erro ao finalizar venda."
-            });
-        }
+      res.json({
+        Cod_Pedido,
+        Valor_Total: totalVenda,
+        Valor_Frete: frete,
+        Custo_Total: totalCusto,
+        Lucro_Total: totalLucro,
+        message: "Venda registrada com sucesso!",
+      });
+    } catch (err) {
+      console.error("Erro ao finalizar venda:", err);
+      await transaction.rollback();
+      res.status(500).json({
+        error: err.message || "Erro ao finalizar venda.",
+      });
     }
+  },
+
+  // ===========================================
+  // ALTERAR CLIENTE DO PEDIDO
+  // ===========================================
+  alterarCliente: async (req, res) => {
+    const pool = req.app.get("db");
+    const sql = req.app.get("sql");
+
+    const codPedido = req.params.codPedido;
+    const { Cod_Cliente } = req.body;
+
+    if (!codPedido || !Cod_Cliente)
+      return res.status(400).json({ error: "Dados inválidos." });
+
+    const transaction = new sql.Transaction(pool);
+
+    try {
+      await transaction.begin();
+
+      // Atualiza pedido
+      await transaction
+        .request()
+        .input("Cod_Pedido", sql.Int, codPedido)
+        .input("Cod_Cliente", sql.Int, Cod_Cliente).query(`
+                UPDATE Tbl_Pedidos
+                SET Cod_Cliente = @Cod_Cliente
+                WHERE Cod_Pedido = @Cod_Pedido
+            `);
+
+      // Atualiza itens
+      await transaction
+        .request()
+        .input("Cod_Pedido", sql.Int, codPedido)
+        .input("Cod_Cliente", sql.Int, Cod_Cliente).query(`
+                UPDATE Tbl_PedidosItens
+                SET Cod_Cliente = @Cod_Cliente
+                WHERE Cod_Pedido = @Cod_Pedido
+            `);
+
+      await transaction.commit();
+
+      res.json({ message: "Cliente atualizado com sucesso." });
+    } catch (err) {
+      await transaction.rollback();
+      console.error(err);
+      res.status(500).json({ error: "Erro ao atualizar cliente." });
+    }
+  },
 };

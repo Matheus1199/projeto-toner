@@ -5,5 +5,6 @@ const vendasController = require("../controllers/vendasController");
 router.get("/listar", vendasController.listar);
 router.get("/pesquisar/:codigo", vendasController.pesquisar);
 router.post("/finalizar", vendasController.finalizar);
+router.put("/alterar-cliente/:codPedido", vendasController.alterarCliente);
 
 module.exports = router;
