@@ -34,6 +34,49 @@
     color: white;
     border-color: #2563eb;
 }
+
+.filtro-select {
+    padding: 6px 32px 6px 12px;
+    border-radius: 9999px;
+    font-size: 0.875rem;
+    border: 1px solid #e5e7eb;
+    background-color: #f9fafb;
+    color: #374151;
+    transition: all 0.2s ease;
+    appearance: none;
+    cursor: pointer;
+}
+
+.filtro-select:hover {
+    background-color: #e5e7eb;
+}
+
+.filtro-select:focus {
+    outline: none;
+    border-color: #2563eb;
+}
+
+/* seta custom */
+.filtro-wrapper {
+    position: relative;
+}
+
+.filtro-wrapper::after {
+    content: "▼";
+    font-size: 10px;
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #6b7280;
+    pointer-events: none;
+}
+
+.filtro-select.ativo {
+    background-color: #2563eb;
+    color: white;
+    border-color: #2563eb;
+}
 </style>
 </head>
 
@@ -130,7 +173,12 @@
             Últimas movimentações
         </h2>
 
-        <div class="flex items-center gap-2">
+        <div class="filtro-wrapper">
+            <select id="filtroConta"
+                    class="filtro-select">
+                <option value="">Todas as contas</option>
+            </select>
+
             <button class="filtro-btn ativo" data-limit="10">10</button>
             <button class="filtro-btn" data-limit="20">20</button>
             <button class="filtro-btn" data-limit="30">30</button>

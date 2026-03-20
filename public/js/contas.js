@@ -105,7 +105,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 async function carregarMovimentacoes() {
     try {
-        const res = await fetch(`/contas/movimentacoes?limit=${limiteAtual}`);
+        const res = await fetch(`/contas/movimentacoes?limit=${limiteAtual}&conta=${contaFiltro}`,);
         const dados = await res.json();
 
         const tbody = document.getElementById("tabelaMovimentacoes");
@@ -128,16 +128,16 @@ async function carregarMovimentacoes() {
             tr.innerHTML = `
                 <td class="p-2">${formatarData(mov.Data)}</td>
                 <td class="p-2">${mov.Conta}</td>
-                <td class="p-2 ${mov.Operacao === 1 ? 'text-green-600' : 'text-red-600'}">
-                    ${mov.Operacao === 1 ? 'Crédito' : 'Débito'}
+                <td class="p-2 ${mov.Tipo === 2 ? "text-green-600" : "text-red-600"}">
+                    ${mov.Tipo === 2 ? "Crédito" : "Débito"}
                 </td>
                 <td class="p-2 font-medium">
                     ${mov.Valor.toLocaleString("pt-BR", {
-                        style: "currency",
-                        currency: "BRL"
+                      style: "currency",
+                      currency: "BRL",
                     })}
                 </td>
-                <td class="p-2">${mov.Obs || ''}</td>
+                <td class="p-2">${mov.Obs || ""}</td>
             `;
 
             tbody.appendChild(tr);
@@ -152,7 +152,26 @@ function formatarData(data) {
     return new Date(data).toLocaleDateString("pt-BR");
 }
 
+async function carregarFiltroContas() {
+  const res = await fetch("/contas/listar");
+  const data = await res.json();
 
+  const select = document.getElementById("filtroConta");
+
+  select.innerHTML = `<option value="">Todas as contas</option>`;
+
+  data.forEach((c) => {
+    select.innerHTML += `<option value="${c.Id_Conta}">${c.Nome}</option>`;
+  });
+}
+
+let contaFiltro = "";
+
+document.getElementById("filtroConta").addEventListener("change", (e) => {
+  contaFiltro = e.target.value;
+  carregarMovimentacoes();
+});
 
 carregarContas();
 carregarSaldoTotal();
+carregarFiltroContas();

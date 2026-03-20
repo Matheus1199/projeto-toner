@@ -100,27 +100,38 @@ module.exports = {
 
     // limite padrão = 10
     const limit = parseInt(req.query.limit) || 10;
+    const conta = req.query.conta;
 
     try {
-        const result = await pool.request()
-            .input("limit", limit)
-            .query(`
-                SELECT TOP (@limit)
-                    pr.Data_Baixa AS Data,
-                    c.Nome AS Conta,
-                    pr.Operacao,
-                    pr.Valor_Baixa AS Valor,
-                    pr.Obs
-                FROM Tbl_PagRec pr
-                INNER JOIN Tbl_Contas c ON c.Id_Conta = pr.Conta
-                WHERE pr.Baixa = 1
-                ORDER BY pr.Data_Baixa DESC
-            `);
+      const request = pool.request().input("limit", limit);
 
-        res.json(result.recordset);
+      let query = `
+        SELECT TOP (@limit)
+            pr.Data_Baixa AS Data,
+            c.Nome AS Conta,
+            pr.Tipo,
+            pr.Operacao,
+            pr.Valor_Baixa AS Valor,
+            pr.Obs
+        FROM Tbl_PagRec pr
+        INNER JOIN Tbl_Contas c ON c.Id_Conta = pr.Conta
+        WHERE pr.Baixa = 1
+    `;
+
+      // filtro opcional
+      if (req.query.conta) {
+        query += " AND pr.Conta = @Conta";
+        request.input("Conta", req.query.conta);
+      }
+
+      query += " ORDER BY pr.Data_Baixa DESC";
+
+      const result = await request.query(query);
+
+      res.json(result.recordset);
     } catch (err) {
-        console.error("Erro ao listar movimentações:", err);
-        res.status(500).json({ erro: "Erro ao listar movimentações" });
+      console.error("Erro ao listar movimentações:", err);
+      res.status(500).json({ erro: "Erro ao listar movimentações" });
     }
 }
 };
