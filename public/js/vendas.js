@@ -73,6 +73,15 @@ document.addEventListener("DOMContentLoaded", () => {
   let loteSelecionado = null;
   let indiceSugestao = -1;
 
+  if (pesquisaPedidoInput) {
+    pesquisaPedidoInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        btnPesquisarPedido.click();
+      }
+    });
+  }
+
   // ====== util ======
   const fmtBRL = (v) => `R$ ${Number(v || 0).toFixed(2)}`;
   const round2 = (v) => Number(Number(v || 0).toFixed(2));
