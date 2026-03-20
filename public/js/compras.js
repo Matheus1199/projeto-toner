@@ -490,11 +490,16 @@ document.addEventListener("DOMContentLoaded", () => {
             (compras || []).forEach(c => {
                 const tr = document.createElement("tr");
                 tr.innerHTML = `
-                    <td class="py-2 px-3 text-center">${c.Cod_Compra}</td>
-                    <td class="py-2 px-3 text-center">${c.Data_Compra ? new Date(c.Data_Compra).toLocaleDateString() : ''}</td>
+                    <td class="py-2 px-3 text-center flex gap-2 justify-center">
+                        <span>${c.Cod_Compra}</span>
+                        <button class="text-red-500 hover:text-red-700 btnCancelarCompra" data-id="${c.Cod_Compra}">
+                            <i class='bx bx-x'></i>
+                        </button>
+                    </td>
+                    <td class="py-2 px-3 text-center">${c.Data_Compra ? new Date(c.Data_Compra).toLocaleDateString() : ""}</td>
                     <td class="py-2 px-3 text-center">${c.Nome_Fornecedor}</td>
                     <td class="py-2 px-3 text-center">${formatBRL(parseFloat(c.Valor_Total || 0))}</td>
-                    <td class="py-2 px-3 text-center">${c.NDocumento || ''}</td>
+                    <td class="py-2 px-3 text-center">${c.NDocumento || ""}</td>
                 `;
                 tbody.appendChild(tr);
             });
@@ -528,8 +533,11 @@ document.addEventListener("DOMContentLoaded", () => {
           const tr = document.createElement("tr");
 
           tr.innerHTML = `
-        <td class="py-3 px-4 text-center">
-            ${data.compra.Cod_Compra}
+        <td class="py-3 px-4 text-center flex gap-2 justify-center">
+            <span>${data.compra.Cod_Compra}</span>
+            <button class="text-red-500 hover:text-red-700 btnCancelarCompra" data-id="${data.compra.Cod_Compra}">
+                <i class='bx bx-x'></i>
+            </button>
         </td>
 
         <td class="py-3 px-4 text-center">
@@ -571,6 +579,35 @@ document.addEventListener("DOMContentLoaded", () => {
     inputRMA &&
       inputRMA.addEventListener("input", () => {
         atualizarTabelaFinanceiro();
+      });
+
+      document.addEventListener("click", async (e) => {
+        const btn = e.target.closest(".btnCancelarCompra");
+        if (!btn) return;
+
+        const codCompra = btn.dataset.id;
+
+        if (!confirm(`Cancelar a compra ${codCompra}?`)) return;
+
+        try {
+          const resp = await fetch(`/compras/cancelar/${codCompra}`, {
+            method: "DELETE",
+          });
+
+          const json = await resp.json();
+
+          if (!resp.ok) return alert(json.error);
+
+          alert("Compra cancelada!");
+
+          // atualiza lista
+          const tabela = document.getElementById("tabelaCompras");
+          tabela.innerHTML = "";
+          location.reload(); // simples (pode trocar por listarCompras())
+        } catch (err) {
+          console.error(err);
+          alert("Erro ao cancelar compra");
+        }
       });
 
 }); // DOMContentLoaded end

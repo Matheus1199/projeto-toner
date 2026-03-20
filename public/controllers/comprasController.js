@@ -68,7 +68,6 @@ module.exports = {
       }
 
       const totalComparacao = totalFin + valorRMA;
-      
 
       if (
         Number(totalItens.toFixed(2)) !== Number(totalComparacao.toFixed(2))
@@ -233,6 +232,115 @@ module.exports = {
     } catch (error) {
       console.error("Erro ao buscar compra:", error);
       res.status(500).json({ error: "Erro ao buscar compra." });
+    }
+  },
+
+  // ===========================================
+  // CANCELAR COMPRA
+  // ===========================================
+  cancelar: async (req, res) => {
+    const pool = req.app.get("db");
+    const sql = req.app.get("sql");
+
+    const codCompra = req.params.codCompra;
+
+    if (!codCompra)
+      return res.status(400).json({ error: "Compra não informada." });
+
+    const transaction = new sql.Transaction(pool);
+
+    try {
+      await transaction.begin();
+
+      // =====================================
+      // 1) VERIFICAR BAIXAS E ESTORNAR
+      // =====================================
+      const baixas = await transaction
+        .request()
+        .input("Cod_Compra", sql.Int, codCompra).query(`
+        SELECT Valor_Baixa
+        FROM Tbl_PagRec
+        WHERE Id_Operacao = @Cod_Compra
+          AND Baixa = 1
+          AND Valor_Baixa IS NOT NULL
+      `);
+
+      let totalEstorno = 0;
+
+      for (const b of baixas.recordset) {
+        totalEstorno += Number(b.Valor_Baixa || 0);
+      }
+
+      // estorna para conta 1 (Barsotti)
+      if (totalEstorno > 0) {
+        await transaction
+          .request()
+          .input("Valor", sql.Decimal(18, 2), totalEstorno).query(`
+          UPDATE Tbl_Contas
+          SET Saldo = Saldo + @Valor
+          WHERE Id_Conta = 1
+        `);
+      }
+
+      // =====================================
+      // 2) BUSCAR ITENS
+      // =====================================
+      const itens = await transaction
+        .request()
+        .input("Cod_Compra", sql.Int, codCompra).query(`
+        SELECT Id_ItemCompra, Saldo
+        FROM Tbl_ComprasItens
+        WHERE Cod_Compra = @Cod_Compra
+      `);
+
+      // =====================================
+      // 3) REMOVER ESTOQUE
+      // (zera saldo dos itens)
+      // =====================================
+      for (const item of itens.recordset) {
+        await transaction
+          .request()
+          .input("Id_ItemCompra", sql.Int, item.Id_ItemCompra).query(`
+          UPDATE Tbl_ComprasItens
+          SET Saldo = 0
+          WHERE Id_ItemCompra = @Id_ItemCompra
+        `);
+      }
+
+      // =====================================
+      // 4) EXCLUIR FINANCEIRO
+      // =====================================
+      await transaction.request().input("Cod_Compra", sql.Int, codCompra)
+        .query(`
+        DELETE FROM Tbl_PagRec
+        WHERE Id_Operacao = @Cod_Compra
+      `);
+
+      // =====================================
+      // 5) EXCLUIR ITENS
+      // =====================================
+      await transaction.request().input("Cod_Compra", sql.Int, codCompra)
+        .query(`
+        DELETE FROM Tbl_ComprasItens
+        WHERE Cod_Compra = @Cod_Compra
+      `);
+
+      // =====================================
+      // 6) EXCLUIR COMPRA
+      // =====================================
+      await transaction.request().input("Cod_Compra", sql.Int, codCompra)
+        .query(`
+        DELETE FROM Tbl_Compras
+        WHERE Cod_Compra = @Cod_Compra
+      `);
+
+      await transaction.commit();
+
+      res.json({ message: "Compra cancelada com sucesso." });
+    } catch (err) {
+      await transaction.rollback();
+      console.error(err);
+      res.status(500).json({ error: "Erro ao cancelar compra." });
     }
   },
 };
