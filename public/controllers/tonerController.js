@@ -172,7 +172,8 @@ module.exports = {
               C.Data_Compra,
               F.Nome AS Fornecedor,
               CI.Quantidade,
-              CI.Valor_Compra
+              CI.Valor_Compra,
+              C.NDocumento
           FROM Tbl_ComprasItens CI
           JOIN Tbl_Compras C ON CI.Cod_Compra = C.Cod_Compra
           JOIN Tbl_Fornecedores F ON C.Cod_Fornecedor = F.Id_Fornecedor

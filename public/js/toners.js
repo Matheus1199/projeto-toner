@@ -230,7 +230,7 @@ dropdown.id = "dropdown-toner";
       ${tabelaHistorico("Últimas 5 vendas", data.vendas, "Cliente", "Valor_Venda", "Data_Venda")}
 
       <!-- COMPRAS -->
-      ${tabelaHistorico("Últimas 5 compras", data.compras, "Fornecedor", "Valor_Compra", "Data_Compra")}
+      ${tabelaHistorico("Últimas 5 compras", data.compras, "Fornecedor", "Valor_Compra", "Data_Compra", "NDocumento")}
 
       <!-- CLIENTES -->
       ${renderClientes(clientes)}
@@ -270,7 +270,7 @@ function renderClientes(clientes) {
 }
 
 
-  function tabelaHistorico(titulo, dados, nomeCampo, valorCampo, dataCampo) {
+  function tabelaHistorico(titulo, dados, nomeCampo, valorCampo, dataCampo, docCampo = null) {
     return `
       <div>
         <h3 class="font-semibold text-lg mb-2">${titulo}</h3>
@@ -280,6 +280,7 @@ function renderClientes(clientes) {
               <tr class="bg-gray-100">
                 <th class="p-2 text-center">Data</th>
                 <th class="p-2 text-center">${nomeCampo}</th>
+                ${docCampo ? '<th class="p-2 text-center">Documento</th>' : ""}
                 <th class="p-2 text-center">Qtd</th>
                 <th class="p-2 text-center">Valor</th>
               </tr>
@@ -293,13 +294,14 @@ function renderClientes(clientes) {
                     <tr class="border-t">
                       <td class="p-2 text-center">${new Date(d[dataCampo]).toLocaleDateString()}</td>
                       <td class="p-2 text-center">${d[nomeCampo]}</td>
+                      ${docCampo ? `<td class="p-2 text-center">${d[docCampo] || "-"}</td>` : ""}
                       <td class="p-2 text-center">${d.Quantidade}</td>
                       <td class="p-2 text-center">R$ ${parseFloat(d[valorCampo]).toFixed(2)}</td>
                     </tr>
                   `,
                       )
                       .join("")
-                  : `<tr><td colspan="4" class="p-3 text-gray-500 text-center">
+                  : `<tr><td colspan="${docCampo ? 5 : 4}" class="p-3 text-gray-500 text-center">
                       Nenhum registro encontrado.
                      </td></tr>`
               }
